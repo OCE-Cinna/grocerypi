@@ -39,6 +39,11 @@ class IBarcodeScanner(ABC):
         """Decode a single numpy image frame and return the detected barcode string."""
         pass
 
+    @abstractmethod
+    def get_latest_jpeg(self) -> Optional[bytes]:
+        """Returns the latest captured frame encoded as JPEG bytes for preview streaming."""
+        pass
+
 
 class Picamera2BarcodeScanner(IBarcodeScanner):
     """
@@ -61,10 +66,24 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         self._recent_scans: Dict[str, float] = {}  # {barcode: timestamp}
         self._detector = cv2.barcode.BarcodeDetector()
         self._picam2 = None
+        self._lock = threading.Lock()
+        self._latest_jpeg: Optional[bytes] = None
 
     @property
     def is_running(self) -> bool:
         return self._is_running
+
+    def get_latest_jpeg(self) -> Optional[bytes]:
+        with self._lock:
+            if self._latest_jpeg is not None:
+                return self._latest_jpeg
+        img = np.zeros((360, 480, 3), dtype=np.uint8)
+        img[:] = (56, 61, 59)
+        cv2.rectangle(img, (80, 60), (400, 300), (139, 228, 195), 2)
+        cv2.putText(img, "Scanning Target Area", (130, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (247, 244, 242), 1)
+        cv2.putText(img, "Initializing Camera Module v3...", (100, 335), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (160, 160, 160), 1)
+        ret, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 60])
+        return buf.tobytes() if ret else None
 
     def decode_frame(self, frame: np.ndarray) -> Optional[str]:
         """
@@ -166,6 +185,15 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                 
                 # Capture frame as numpy array
                 frame = self._picam2.capture_array("main")
+
+                # Store latest JPEG for live preview stream
+                try:
+                    ret, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
+                    if ret:
+                        with self._lock:
+                            self._latest_jpeg = buf.tobytes()
+                except Exception:
+                    pass
                 
                 barcode = self.decode_frame(frame)
                 if barcode:
@@ -236,10 +264,24 @@ class MockBarcodeScanner(IBarcodeScanner):
         self._is_running = False
         self._on_scan_callback: Optional[Callable[[str], None]] = None
         self._recent_scans: Dict[str, float] = {}
+        self._lock = threading.Lock()
+        self._latest_jpeg: Optional[bytes] = None
 
     @property
     def is_running(self) -> bool:
         return self._is_running
+
+    def get_latest_jpeg(self) -> Optional[bytes]:
+        with self._lock:
+            if self._latest_jpeg is not None:
+                return self._latest_jpeg
+        img = np.zeros((360, 480, 3), dtype=np.uint8)
+        img[:] = (56, 61, 59)
+        cv2.rectangle(img, (80, 60), (400, 300), (139, 228, 195), 2)
+        cv2.putText(img, "Scanning Target Area", (130, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (247, 244, 242), 1)
+        cv2.putText(img, "Initializing Camera Module v3...", (100, 335), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (160, 160, 160), 1)
+        ret, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 60])
+        return buf.tobytes() if ret else None
 
     def decode_frame(self, frame: np.ndarray) -> Optional[str]:
         return None

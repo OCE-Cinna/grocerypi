@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Navbar from "./components/Navbar";
 import DashboardPage from "./pages/DashboardPage";
 import CartPage from "./pages/CartPage";
@@ -53,9 +53,45 @@ export default function App() {
     }
   }, []);
 
+  const lastProcessedScanIdRef = useRef(0);
+
   useEffect(() => {
     fetchInventory(activeSortNutrient);
     fetchAuxData();
+  }, [fetchInventory, fetchAuxData, activeSortNutrient]);
+
+  // Listen for hardware barcode scans from Camera Module v3 loop
+  useEffect(() => {
+    // Prime the latest scan ID so previous scans aren't re-triggered on load
+    api.get("/scanner/latest-event")
+      .then((res) => {
+        if (res.data?.scan_id) {
+          lastProcessedScanIdRef.current = res.data.scan_id;
+        }
+      })
+      .catch(() => {});
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get("/scanner/latest-event");
+        const event = res.data;
+        if (event && event.scan_id && event.scan_id > lastProcessedScanIdRef.current) {
+          lastProcessedScanIdRef.current = event.scan_id;
+          if (event.scan_status === "SUCCESS") {
+            setScanFeedbackEvent(event);
+            setIsScanModalOpen(false);
+            fetchInventory(activeSortNutrient);
+            fetchAuxData();
+          } else if (event.scan_status === "UNKNOWN_BARCODE") {
+            alert(event.message || `Barcode '${event.barcode}' not in catalog.`);
+          }
+        }
+      } catch (err) {
+        // Quietly ignore polling blips
+      }
+    }, 400);
+
+    return () => clearInterval(interval);
   }, [fetchInventory, fetchAuxData, activeSortNutrient]);
 
   // Handle barcode scan ingestion
