@@ -143,11 +143,16 @@ export default function App() {
     setActiveTab("dashboard");
   };
 
-  // Reset / Home handler
-  const handleHomeReset = () => {
-    setActiveTab("dashboard");
-    setActiveSortNutrient(null);
-    fetchInventory(null);
+  // Home button: exit kiosk mode to Raspberry Pi OS desktop
+  const handleHomeExit = async () => {
+    try {
+      await api.post("/system/exit-kiosk");
+    } catch (err) {
+      console.warn("Backend exit-kiosk call:", err);
+    }
+    try {
+      window.close();
+    } catch (_) {}
   };
 
   return (
@@ -156,7 +161,7 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onHome={handleHomeReset}
+        onHome={handleHomeExit}
         scannerStatus={scannerStatus}
         storesStatus="not connected"
       />

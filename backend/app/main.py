@@ -138,6 +138,23 @@ def stop_camera_scanner():
     return {"status": "already_stopped"}
 
 
+@app.post("/system/exit-kiosk", tags=["System"])
+def exit_kiosk():
+    """Terminates the Chromium kiosk browser to return to Raspberry Pi OS desktop."""
+    logger.info("Exit kiosk requested via Home button.")
+    import subprocess
+    try:
+        subprocess.Popen(
+            ["sh", "-c", "pkill -f 'chromium.*--kiosk' || pkill -f 'chromium-browser.*--kiosk' || pkill -f 'chromium'"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        return {"status": "ok", "message": "Closing kiosk mode..."}
+    except Exception as e:
+        logger.error(f"Error terminating kiosk: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 @app.get("/", tags=["Health"])
 def health_check():
     return {

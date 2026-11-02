@@ -1,0 +1,1 @@
+/home/grocerypi/grocerypi/scripts/launch_kiosk.sh
