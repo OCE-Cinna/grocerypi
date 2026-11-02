@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { X, Camera, Barcode, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { FigmaBarcode, FigmaClose } from "./FigmaIcons";
 
 export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProducts = [] }) {
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -25,22 +26,14 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
       <div className="bg-white rounded-3xl p-7 sm:p-8 max-w-lg w-full shadow-2xl border border-gray-200 relative">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gunmetal rounded-xl hover:bg-gray-100 transition-colors"
+          className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gunmetal rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
         >
-          <X className="w-6 h-6" />
+          <FigmaClose className="w-5 h-5 fill-current" />
         </button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-gunmetal text-white flex items-center justify-center font-mono text-xl">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-              <line x1="8" y1="8" x2="8" y2="16" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="16" y1="8" x2="16" y2="16" />
-            </svg>
+          <div className="w-12 h-12 rounded-2xl bg-gunmetal text-white flex items-center justify-center">
+            <FigmaBarcode className="w-7 h-7 stroke-white" />
           </div>
           <div>
             <h3 className="text-2xl font-extrabold text-gunmetal tracking-tight">Scan New Item</h3>

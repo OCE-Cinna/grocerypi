@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { BarChart3, PieChart as PieChartIcon } from "lucide-react";
 import { CheckCircleIcon, EcoIcon, SpaIcon } from "../components/MaterialIcons";
+import { FigmaNutrition } from "../components/FigmaIcons";
 
 export default function NutritionPage({ summary, onSelectNutrientSort }) {
   const [viewMode, setViewMode] = useState("bars"); // "bars" | "pie"
@@ -151,24 +151,28 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
         <div className="flex items-center p-1.5 bg-white border border-gray-300 rounded-2xl shadow-xs shrink-0 self-start sm:self-auto">
           <button
             onClick={() => setViewMode("bars")}
-            className={`h-11 px-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-95 ${
+            className={`h-11 px-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
               viewMode === "bars"
                 ? "bg-gunmetal text-white shadow-xs"
                 : "text-gunmetal hover:bg-gray-100"
             }`}
           >
-            <BarChart3 className="w-4 h-4" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
             <span>Nutrition Bars</span>
           </button>
           <button
             onClick={() => setViewMode("pie")}
-            className={`h-11 px-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-95 ${
+            className={`h-11 px-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
               viewMode === "pie"
                 ? "bg-gunmetal text-white shadow-xs"
                 : "text-gunmetal hover:bg-gray-100"
             }`}
           >
-            <PieChartIcon className="w-4 h-4" />
+            <FigmaNutrition className="w-4 h-4 stroke-current" />
             <span>Macro Pie Chart</span>
           </button>
         </div>

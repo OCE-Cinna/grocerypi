@@ -1,6 +1,6 @@
 import React from "react";
-import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { EcoIcon, SpaIcon } from "./MaterialIcons";
+import { FigmaMinus, FigmaPlus, FigmaEdit, FigmaTrash } from "./FigmaIcons";
 
 export default function GroceryCard({ item, activeSortNutrient, onIncrement, onDecrement, onEdit, onDelete }) {
   const product = item.product || {};
@@ -110,10 +110,10 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
         {/* Decrement Button */}
         <button
           onClick={() => onDecrement(item)}
-          className="w-16 sm:w-20 bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200"
+          className="w-16 sm:w-20 bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200 cursor-pointer"
           title="Decrease count"
         >
-          <Minus className="w-5 h-5 stroke-[2.5]" />
+          <FigmaMinus className="w-5 h-5 fill-gunmetal" />
         </button>
 
         {/* Quantity Badge (Lime Cream) */}
@@ -125,10 +125,10 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
         {/* Increment Button */}
         <button
           onClick={() => onIncrement(item)}
-          className="w-16 sm:w-20 bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200"
+          className="w-16 sm:w-20 bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200 cursor-pointer"
           title="Increase count"
         >
-          <Plus className="w-5 h-5 stroke-[2.5]" />
+          <FigmaPlus className="w-5 h-5 fill-gunmetal" />
         </button>
 
         {/* Edit Button */}
@@ -137,7 +137,7 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
           className="w-20 sm:w-24 bg-white hover:bg-gray-50 flex flex-col items-center justify-center text-gunmetal transition-colors border-r border-gray-200 gap-1 active:bg-gray-100 cursor-pointer"
           title="Edit item"
         >
-          <Pencil className="w-4 h-4 stroke-[2] text-gunmetal" />
+          <FigmaEdit className="w-4 h-4 stroke-gunmetal" />
           <span className="text-xs font-medium text-gunmetal">Edit</span>
         </button>
 
@@ -147,7 +147,7 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
           className="w-20 sm:w-24 bg-dustyRose hover:bg-dustyRose-dark text-gunmetal flex flex-col items-center justify-center transition-colors gap-1 active:opacity-90 cursor-pointer"
           title="Delete item"
         >
-          <Trash2 className="w-4 h-4 stroke-[2] text-gunmetal" />
+          <FigmaTrash className="w-4 h-4 fill-gunmetal" />
           <span className="text-xs font-medium text-gunmetal">Delete</span>
         </button>
       </div>

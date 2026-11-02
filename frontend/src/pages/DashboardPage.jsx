@@ -1,7 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { Search, X, ChevronDown } from "lucide-react";
 import GroceryCard from "../components/GroceryCard";
 import { EcoIcon, SpaIcon } from "../components/MaterialIcons";
+import {
+  FigmaSearch,
+  FigmaBarcode,
+  FigmaChevronDown,
+  FigmaClose,
+} from "../components/FigmaIcons";
 
 const CATEGORIES = ["All", "Food", "Pets", "Household", "Hygiene"];
 
@@ -77,7 +82,7 @@ export default function DashboardPage({
 
           {/* Search Bar (58px high) */}
           <div className="relative mt-4">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <FigmaSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 stroke-gray-400" />
             <input
               type="text"
               value={searchQuery}
@@ -88,9 +93,9 @@ export default function DashboardPage({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gunmetal p-1"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gunmetal p-1 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <FigmaClose className="w-5 h-5 fill-current" />
               </button>
             )}
           </div>
@@ -101,16 +106,8 @@ export default function DashboardPage({
           onClick={onOpenScanModal}
           className="w-full md:w-[320px] h-[90px] md:h-[116px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3.5 transition-all active:scale-98 shadow-md shrink-0 cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-mono">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-              <line x1="8" y1="8" x2="8" y2="16" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="16" y1="8" x2="16" y2="16" />
-            </svg>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+            <FigmaBarcode className="w-7 h-7 stroke-[#F7F4F2]" />
           </div>
           <span>Scan New Item</span>
         </button>
@@ -236,9 +233,9 @@ export default function DashboardPage({
       <div className="flex items-center justify-between text-xs text-kioskGray mt-6 pt-3 border-t border-gray-300">
         <span>{filteredItems.length} items · illustrative household · 14 Oct 2026</span>
         {filteredItems.length > 2 && (
-          <span className="font-medium text-gray-500 inline-flex items-center gap-1">
+          <span className="font-medium text-gray-500 inline-flex items-center gap-1.5">
             <span>Scroll for {Math.max(1, filteredItems.length - 2)} more items</span>
-            <ChevronDown className="w-3.5 h-3.5" />
+            <FigmaChevronDown className="w-3.5 h-3.5 fill-current" />
           </span>
         )}
       </div>

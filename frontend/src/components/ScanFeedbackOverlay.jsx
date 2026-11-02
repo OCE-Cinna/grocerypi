@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Undo2 } from "lucide-react";
+import { FigmaCheckmark, FigmaUndo } from "./FigmaIcons";
 
 export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
   if (!scanEvent) return null;
@@ -24,7 +24,7 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
       <div className="bg-white rounded-3xl p-8 sm:p-10 max-w-lg w-full shadow-2xl border border-gray-200 text-center relative animate-scale-in">
         {/* Top Lime Cream Check Icon */}
         <div className="w-16 h-16 rounded-2xl bg-limeCream flex items-center justify-center mx-auto mb-5 shadow-xs">
-          <Check className="w-9 h-9 stroke-[3] text-gunmetal" />
+          <FigmaCheckmark className="w-8 h-8 fill-gunmetal" />
         </div>
 
         {/* Product Name */}
@@ -48,7 +48,7 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
             onClick={() => onUndo(scanEvent)}
             className="w-full h-18 rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3 active:scale-98 transition-all shadow-md cursor-pointer"
           >
-            <Undo2 className="w-6 h-6 stroke-[2.5]" />
+            <FigmaUndo className="w-6 h-6 fill-white" />
             <span>Undo</span>
           </button>
         </div>

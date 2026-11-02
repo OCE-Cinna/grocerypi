@@ -1,5 +1,5 @@
 import React from "react";
-import { Home } from "lucide-react";
+import { FigmaBarcode, FigmaHome, FigmaCart, FigmaNutrition } from "./FigmaIcons";
 
 export default function Navbar({ activeTab, onSelectTab, onHome, scannerStatus = "demo", storesStatus = "not connected" }) {
   return (
@@ -10,17 +10,9 @@ export default function Navbar({ activeTab, onSelectTab, onHome, scannerStatus =
           onClick={onHome}
           className="flex items-center gap-3 cursor-pointer group"
         >
-          {/* Custom Barcode-like Icon [::] */}
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-mono font-bold text-xl tracking-tighter">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-              <line x1="8" y1="8" x2="8" y2="16" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="16" y1="8" x2="16" y2="16" />
-            </svg>
+          {/* Custom Figma Barcode Scanner Icon */}
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white">
+            <FigmaBarcode className="w-6 h-6 stroke-[#F7F4F2]" />
           </div>
           <span className="font-extrabold text-2xl tracking-tight text-white">GroceryPi</span>
         </div>
@@ -29,35 +21,37 @@ export default function Navbar({ activeTab, onSelectTab, onHome, scannerStatus =
         <nav className="flex items-center gap-2">
           <button
             onClick={() => onSelectTab("dashboard")}
-            className={`min-h-[46px] px-6 rounded-xl font-bold text-base transition-all ${
+            className={`min-h-[46px] px-6 rounded-xl font-bold text-base transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === "dashboard"
                 ? "bg-white text-gunmetal shadow-sm"
                 : "text-gray-300 hover:text-white"
             }`}
           >
-            Dashboard
+            <span>Dashboard</span>
           </button>
 
           <button
             onClick={() => onSelectTab("cart")}
-            className={`min-h-[46px] px-6 rounded-xl font-bold text-base transition-all ${
+            className={`min-h-[46px] px-6 rounded-xl font-bold text-base transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === "cart"
                 ? "bg-white text-gunmetal shadow-sm"
                 : "text-gray-300 hover:text-white"
             }`}
           >
-            Cart
+            <FigmaCart className={`w-5 h-5 ${activeTab === "cart" ? "stroke-gunmetal" : "stroke-gray-300"}`} />
+            <span>Cart</span>
           </button>
 
           <button
             onClick={() => onSelectTab("nutrition")}
-            className={`min-h-[46px] px-6 rounded-xl font-bold text-base transition-all ${
+            className={`min-h-[46px] px-6 rounded-xl font-bold text-base transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === "nutrition"
                 ? "bg-white text-gunmetal shadow-sm"
                 : "text-gray-300 hover:text-white"
             }`}
           >
-            Nutrition
+            <FigmaNutrition className={`w-5 h-5 ${activeTab === "nutrition" ? "stroke-gunmetal" : "stroke-gray-300"}`} />
+            <span>Nutrition</span>
           </button>
         </nav>
 
@@ -70,10 +64,10 @@ export default function Navbar({ activeTab, onSelectTab, onHome, scannerStatus =
 
           <button
             onClick={onHome}
-            className="w-[88px] h-[52px] rounded-xl border border-gray-600 bg-gunmetal-light/30 hover:bg-gunmetal-light text-white flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all"
+            className="w-[88px] h-[52px] rounded-xl border border-gray-600 bg-gunmetal-light/30 hover:bg-gunmetal-light text-white flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all cursor-pointer"
             title="Reset to Dashboard"
           >
-            <Home className="w-5 h-5" />
+            <FigmaHome className="w-5 h-5 stroke-[#F7F4F2]" />
             <span className="text-[11px] font-semibold tracking-wide">Home</span>
           </button>
         </div>
