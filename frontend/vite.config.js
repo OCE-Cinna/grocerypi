@@ -12,6 +12,7 @@ export default defineConfig({
       "/inventory": "http://localhost:8000",
       "/products": "http://localhost:8000",
       "/scanner": "http://localhost:8000",
+      "/system": "http://localhost:8000",
     },
   },
 });
