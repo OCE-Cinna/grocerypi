@@ -14,6 +14,7 @@ cd "$SCRIPT_DIR"
 export PATH="/home/grocerypi/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 export DISPLAY="${DISPLAY:-:0}"
 export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
+export ENABLE_HARDWARE_SCANNER=true
 
 echo "=========================================="
 echo " Starting GroceryPi Kiosk Environment..."
@@ -89,3 +90,4 @@ exec "$CHROMIUM_BIN" \
     --password-store=basic \
     --autoplay-policy=no-user-gesture-required \
     http://localhost:5173
+

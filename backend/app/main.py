@@ -71,7 +71,7 @@ def handle_hardware_scan(barcode: str):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle manager for FastAPI and the background hardware scanner."""
-    auto_start = os.getenv("ENABLE_HARDWARE_SCANNER", "false").lower() in ("true", "1", "yes")
+    auto_start = os.getenv("ENABLE_HARDWARE_SCANNER", "true").lower() in ("true", "1", "yes")
     scanner = get_barcode_scanner()
 
     if auto_start:

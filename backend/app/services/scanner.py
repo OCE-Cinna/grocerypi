@@ -6,6 +6,12 @@ from typing import Callable, Optional, Dict, Tuple
 import cv2
 import numpy as np
 
+try:
+    from pyzbar import pyzbar
+    _HAS_PYZBAR = True
+except ImportError:
+    _HAS_PYZBAR = False
+
 logger = logging.getLogger("grocerypi.scanner")
 
 
@@ -63,7 +69,10 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
     def decode_frame(self, frame: np.ndarray) -> Optional[str]:
         """
         Attempts to detect and decode an EAN-13, UPC, or 1D/2D barcode from a frame.
-        Applies grayscale conversion and contrast normalization if needed.
+        Applies a high-performance dual-engine pipeline:
+          1. pyzbar (highest recognition rate & angle tolerance for 1D grocery packaging)
+          2. cv2.barcode.BarcodeDetector (OpenCV fallback)
+          3. Contrast / Gaussian smoothing fallback for high-gloss kitchen reflections
         """
         if frame is None or frame.size == 0:
             return None
@@ -74,22 +83,39 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         else:
             gray = frame
 
-        # Run OpenCV BarcodeDetector
-        retval, decoded_info, decoded_type, points = self._detector.detectAndDecode(gray)
-        if retval and decoded_info:
-            for item in decoded_info:
-                clean_code = str(item).strip()
-                if clean_code:
-                    return clean_code
+        # Primary: pyzbar (standard retail 1D/2D decoder)
+        if _HAS_PYZBAR:
+            try:
+                results = pyzbar.decode(gray)
+                for item in results:
+                    code = item.data.decode("utf-8", errors="ignore").strip()
+                    if code:
+                        return code
+            except Exception as e:
+                logger.debug(f"pyzbar decode pass error: {e}")
 
-        # Fallback: Contrast stretch / OTSU threshold for challenging kitchen reflections
-        blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-        retval, decoded_info, decoded_type, points = self._detector.detectAndDecode(blurred)
-        if retval and decoded_info:
-            for item in decoded_info:
-                clean_code = str(item).strip()
-                if clean_code:
-                    return clean_code
+        # Secondary: OpenCV BarcodeDetector
+        try:
+            retval, decoded_info, decoded_type, points = self._detector.detectAndDecode(gray)
+            if retval and decoded_info:
+                for item in decoded_info:
+                    clean_code = str(item).strip()
+                    if clean_code:
+                        return clean_code
+        except Exception:
+            pass
+
+        # Fallback: Mild Gaussian blur for packaging glare/reflections
+        if _HAS_PYZBAR:
+            try:
+                blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+                results = pyzbar.decode(blurred)
+                for item in results:
+                    code = item.data.decode("utf-8", errors="ignore").strip()
+                    if code:
+                        return code
+            except Exception:
+                pass
 
         return None
 
