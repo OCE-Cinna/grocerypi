@@ -96,6 +96,11 @@ class ProductCatalog(Base):
     webshop_id = Column(Integer, nullable=True, index=True)
     package_size = Column(String(50), nullable=True)
 
+    # Dietary & Health Attributes
+    nutriscore = Column(String(5), nullable=True)  # 'A', 'B', 'C', 'D', 'E'
+    is_vegetarian = Column(Boolean, default=False, nullable=False)
+    is_vegan = Column(Boolean, default=False, nullable=False)
+
     # Nutritional metadata per 100g / serving (Strict Order: Energy kJ/kcal, Fat, SatFat, Carbs, Sugar, Fiber, Protein, Salt)
     energy_kj = Column(Float, default=0.0, nullable=False)
     energy_kcal = Column(Float, default=0.0, nullable=False)

@@ -61,6 +61,38 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
           <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
             {product.category || "Food"}
           </span>
+
+          {/* Nutri-Score Badge */}
+          {product.nutriscore && (
+            <span
+              className={`px-2 py-0.5 rounded text-[11px] font-black tracking-wider shadow-2xs ${
+                product.nutriscore === "A"
+                  ? "bg-[#038141] text-white"
+                  : product.nutriscore === "B"
+                  ? "bg-[#85BB2F] text-white"
+                  : product.nutriscore === "C"
+                  ? "bg-[#FECB02] text-gunmetal font-extrabold"
+                  : product.nutriscore === "D"
+                  ? "bg-[#EE8100] text-white"
+                  : "bg-[#E63E11] text-white"
+              }`}
+              title={`Nutri-Score: Grade ${product.nutriscore}`}
+            >
+              Nutri-Score {product.nutriscore}
+            </span>
+          )}
+
+          {/* Diet Badge (Vegan / Vegetarian) */}
+          {product.is_vegan ? (
+            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
+              🌱 Vegan
+            </span>
+          ) : product.is_vegetarian ? (
+            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-800 border border-green-300">
+              🥬 Veg
+            </span>
+          ) : null}
+
           {renderNutrientBadge()}
         </div>
 

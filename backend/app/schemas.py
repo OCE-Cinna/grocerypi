@@ -113,6 +113,9 @@ class ProductCatalogBase(BaseModel):
     is_dual_store: bool = False
     webshop_id: Optional[int] = None
     package_size: Optional[str] = Field(None, max_length=50)
+    nutriscore: Optional[str] = Field(None, max_length=5)
+    is_vegetarian: bool = False
+    is_vegan: bool = False
 
     # 9 nutritional fields in order
     energy_kj: float = Field(default=0.0, ge=0.0)
@@ -136,6 +139,9 @@ class ProductCatalogUpdate(BaseModel):
     category: Optional[ItemCategory] = None
     preferred_store: Optional[PreferredStore] = None
     package_size: Optional[str] = None
+    nutriscore: Optional[str] = None
+    is_vegetarian: Optional[bool] = None
+    is_vegan: Optional[bool] = None
     energy_kj: Optional[float] = Field(None, ge=0.0)
     energy_kcal: Optional[float] = Field(None, ge=0.0)
     fat_grams: Optional[float] = Field(None, ge=0.0)
@@ -228,6 +234,12 @@ class NutritionalSummaryOut(BaseModel):
     total_fiber_grams: float
     total_protein_grams: float
     total_salt_grams: float
+    # Nutri-Score & Dietary Metrics
+    average_nutriscore: Optional[str] = None
+    average_nutriscore_numeric: Optional[float] = None
+    total_vegetarian_items: int = 0
+    total_vegan_items: int = 0
+    nutriscore_counts: Optional[dict[str, int]] = None
 
 
 # ─── Cart & Smart Replenishment Schemas ────────────────────────────────────────

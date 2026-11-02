@@ -16,10 +16,12 @@ export default function DashboardPage({
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedDiet, setSelectedDiet] = useState("All");
+  const [sortByOption, setSortByOption] = useState("newest");
 
-  // Filter items by category and search term
+  // Filter items by category, search term, and dietary requirements
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    let result = items.filter((item) => {
       const p = item.product || {};
       const matchesSearch =
         searchQuery.trim() === "" ||
@@ -35,9 +37,30 @@ export default function DashboardPage({
         (selCat === "pets" && itemCat === "pet") ||
         (selCat === "pet" && itemCat === "pets");
 
-      return matchesSearch && matchesCategory;
+      const matchesDiet =
+        selectedDiet === "All" ||
+        (selectedDiet === "Vegetarian" && (p.is_vegetarian || p.is_vegan)) ||
+        (selectedDiet === "Vegan" && p.is_vegan);
+
+      return matchesSearch && matchesCategory && matchesDiet;
     });
-  }, [items, searchQuery, selectedCategory]);
+
+    // Handle sort options
+    if (sortByOption === "nutriscore") {
+      const nsRank = { A: 1, B: 2, C: 3, D: 4, E: 5 };
+      result.sort((a, b) => {
+        const rA = nsRank[a.product?.nutriscore?.toUpperCase()] || 99;
+        const rB = nsRank[b.product?.nutriscore?.toUpperCase()] || 99;
+        return rA - rB;
+      });
+    } else if (sortByOption === "protein") {
+      result.sort((a, b) => (b.product?.protein_grams || 0) - (a.product?.protein_grams || 0));
+    } else if (sortByOption === "fiber") {
+      result.sort((a, b) => (b.product?.fiber_grams || 0) - (a.product?.fiber_grams || 0));
+    }
+
+    return result;
+  }, [items, searchQuery, selectedCategory, selectedDiet, sortByOption]);
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 pb-20 select-none">
@@ -110,6 +133,47 @@ export default function DashboardPage({
             </button>
           );
         })}
+      </div>
+
+      {/* Diet Filters & Sorting Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 p-3 bg-white/70 rounded-2xl border border-gray-200">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold text-kioskGray uppercase tracking-wider mr-1">
+            Diet:
+          </span>
+          {["All", "Vegetarian", "Vegan"].map((diet) => {
+            const isActive = selectedDiet === diet;
+            return (
+              <button
+                key={diet}
+                onClick={() => setSelectedDiet(diet)}
+                className={`h-9 px-4 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+                  isActive
+                    ? "bg-gunmetal text-white border-gunmetal shadow-xs"
+                    : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {diet === "Vegan" ? "🌱 Vegan" : diet === "Vegetarian" ? "🥬 Vegetarian" : "All Diets"}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-kioskGray uppercase tracking-wider">
+            Sort by:
+          </span>
+          <select
+            value={sortByOption}
+            onChange={(e) => setSortByOption(e.target.value)}
+            className="h-9 px-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gunmetal outline-none focus:border-gunmetal cursor-pointer"
+          >
+            <option value="newest">Newest restocked</option>
+            <option value="nutriscore">Nutri-Score (Best A→E)</option>
+            <option value="protein">Protein (Highest)</option>
+            <option value="fiber">Fiber (Highest)</option>
+          </select>
+        </div>
       </div>
 
       {/* Active Nutrition Autosort Indicator */}

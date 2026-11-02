@@ -102,18 +102,21 @@ def get_inventory(
     category: Optional[str] = None,
     preferred_store: Optional[PreferredStore] = None,
     item_status: Optional[InventoryStatus] = None,
+    is_vegetarian: Optional[bool] = None,
+    is_vegan: Optional[bool] = None,
+    nutriscore: Optional[str] = None,
     sort_by: Optional[str] = Query(
         None,
-        description="Field to sort by: e.g. protein_grams, sugar_grams, energy_kcal, fat_grams, etc.",
+        description="Field to sort by: e.g. protein_grams, sugar_grams, energy_kcal, nutriscore, is_vegetarian, etc.",
     ),
     order: str = Query("desc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
     """
     Lists household inventory items.
-    Supports interactive autosorting when clicking a nutrition info bar:
-    - Sorts by any nutritional attribute (protein_grams, fiber_grams, sugar_grams, etc.).
-    - Filters items with zero or positive values.
+    Supports interactive autosorting and dietary filtering (vegetarian, vegan, nutriscore):
+    - Sorts by any nutritional attribute or nutriscore.
+    - Filters items by category, store, vegetarian, vegan, and nutriscore.
     """
     query = db.query(InventoryItem).join(ProductCatalog).options(joinedload(InventoryItem.product))
 
@@ -133,6 +136,12 @@ def get_inventory(
         query = query.filter(ProductCatalog.preferred_store == preferred_store)
     if item_status:
         query = query.filter(InventoryItem.status == item_status)
+    if is_vegetarian is not None:
+        query = query.filter(ProductCatalog.is_vegetarian == is_vegetarian)
+    if is_vegan is not None:
+        query = query.filter(ProductCatalog.is_vegan == is_vegan)
+    if nutriscore:
+        query = query.filter(ProductCatalog.nutriscore == nutriscore.strip().upper())
 
     # Nutritional & attribute sorting
     allowed_nutrition_fields = {
@@ -145,6 +154,9 @@ def get_inventory(
         "fiber_grams": ProductCatalog.fiber_grams,
         "protein_grams": ProductCatalog.protein_grams,
         "salt_grams": ProductCatalog.salt_grams,
+        "nutriscore": ProductCatalog.nutriscore,
+        "is_vegetarian": ProductCatalog.is_vegetarian,
+        "is_vegan": ProductCatalog.is_vegan,
         "quantity": InventoryItem.quantity,
         "last_restocked_at": InventoryItem.last_restocked_at,
     }
@@ -164,8 +176,8 @@ def get_inventory(
 @router.get("/nutrition/summary", response_model=NutritionalSummaryOut)
 def get_nutrition_summary(db: Session = Depends(get_db)):
     """
-    Calculates aggregated macros and energy across all currently stocked items.
-    Used for the Kiosk Nutritional Insights View (View C).
+    Calculates aggregated macros, energy, average Nutri-Score, and vegetarian/vegan counts
+    across all currently stocked physical items for the Kiosk Nutritional Insights View.
     """
     items = db.query(InventoryItem).join(ProductCatalog).filter(InventoryItem.quantity > 0).all()
 
@@ -182,6 +194,14 @@ def get_nutrition_summary(db: Session = Depends(get_db)):
         "total_salt_grams": 0.0,
     }
 
+    nutriscore_map = {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5}
+    reverse_map = {1: "A", 2: "B", 3: "C", 4: "D", 5: "E"}
+    nutriscore_weighted_sum = 0
+    nutriscore_total_units = 0
+    nutriscore_counts = {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0}
+    total_vegetarian = 0
+    total_vegan = 0
+
     for item in items:
         p = item.product
         qty = item.quantity
@@ -196,10 +216,33 @@ def get_nutrition_summary(db: Session = Depends(get_db)):
         summary["total_protein_grams"] += p.protein_grams * qty
         summary["total_salt_grams"] += p.salt_grams * qty
 
-    # Round to 2 decimal places
-    for k in summary:
+        if p.is_vegetarian:
+            total_vegetarian += qty
+        if p.is_vegan:
+            total_vegan += qty
+
+        if p.nutriscore and p.nutriscore.upper() in nutriscore_map:
+            ns = p.nutriscore.upper()
+            nutriscore_counts[ns] += qty
+            nutriscore_weighted_sum += nutriscore_map[ns] * qty
+            nutriscore_total_units += qty
+
+    # Round macros to 2 decimal places
+    for k in list(summary.keys()):
         if isinstance(summary[k], float):
             summary[k] = round(summary[k], 2)
+
+    avg_numeric = round(nutriscore_weighted_sum / nutriscore_total_units, 2) if nutriscore_total_units > 0 else None
+    avg_letter = None
+    if avg_numeric is not None:
+        rounded_val = min(5, max(1, round(avg_numeric)))
+        avg_letter = reverse_map.get(rounded_val, "B")
+
+    summary["average_nutriscore"] = avg_letter
+    summary["average_nutriscore_numeric"] = avg_numeric
+    summary["total_vegetarian_items"] = total_vegetarian
+    summary["total_vegan_items"] = total_vegan
+    summary["nutriscore_counts"] = nutriscore_counts
 
     return summary
 

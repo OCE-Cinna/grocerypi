@@ -33,6 +33,12 @@ def init_db():
             conn.execute(text("ALTER TABLE product_catalog ADD COLUMN is_dual_store BOOLEAN DEFAULT 0 NOT NULL;"))
         if "webshop_id" not in prod_cols:
             conn.execute(text("ALTER TABLE product_catalog ADD COLUMN webshop_id INTEGER;"))
+        if "nutriscore" not in prod_cols:
+            conn.execute(text("ALTER TABLE product_catalog ADD COLUMN nutriscore VARCHAR(5);"))
+        if "is_vegetarian" not in prod_cols:
+            conn.execute(text("ALTER TABLE product_catalog ADD COLUMN is_vegetarian BOOLEAN DEFAULT 0 NOT NULL;"))
+        if "is_vegan" not in prod_cols:
+            conn.execute(text("ALTER TABLE product_catalog ADD COLUMN is_vegan BOOLEAN DEFAULT 0 NOT NULL;"))
 
         # Check inventory_items columns
         res = conn.execute(text("PRAGMA table_info(inventory_items);")).fetchall()
