@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { FigmaBarcode, FigmaClose } from "./FigmaIcons";
+import {
+  M3BarcodeScanner as FigmaBarcode,
+  M3Close as FigmaClose,
+  M3Videocam,
+  M3VideocamOff,
+  M3Add,
+} from "./Material3Icons";
 
 export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProducts = [] }) {
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -58,19 +64,19 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gunmetal/60 backdrop-blur-xs select-none">
       <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-gray-200 relative max-h-[92vh] flex flex-col overflow-hidden">
-        {/* Close Button */}
+        {/* Close Button (+15% larger touch area) */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gunmetal rounded-xl hover:bg-gray-100 transition-colors cursor-pointer z-10"
+          className="absolute top-5 right-5 p-2.5 text-gray-400 hover:text-gunmetal rounded-xl hover:bg-gray-100 transition-colors cursor-pointer z-10"
           aria-label="Close scan modal"
         >
-          <FigmaClose className="w-5 h-5 fill-current" />
+          <FigmaClose className="w-6 h-6 fill-current" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-11 h-11 rounded-2xl bg-gunmetal text-white flex items-center justify-center shrink-0">
-            <FigmaBarcode className="w-6 h-6 stroke-white" />
+        <div className="flex items-center gap-3.5 mb-4">
+          <div className="w-[51px] h-[51px] rounded-2xl bg-gunmetal text-white flex items-center justify-center shrink-0">
+            <FigmaBarcode className="w-7 h-7 fill-white" />
           </div>
           <div>
             <h3 className="text-2xl font-extrabold text-gunmetal tracking-tight leading-tight">
@@ -173,18 +179,9 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
                     <button
                       type="button"
                       onClick={togglePreview}
-                      className="px-2.5 py-1 rounded-full bg-gunmetal-dark/85 hover:bg-black/90 backdrop-blur-xs border border-white/15 text-[11px] font-medium text-parchment hover:text-white shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-full bg-gunmetal-dark/85 hover:bg-black/90 backdrop-blur-xs border border-white/15 text-xs font-semibold text-parchment hover:text-white shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
                     >
-                      <svg
-                        className="w-3.5 h-3.5 fill-none stroke-current"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </svg>
+                      <M3VideocamOff className="w-4 h-4 fill-current" />
                       <span>Turn Off</span>
                     </button>
                   </div>
@@ -230,55 +227,36 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
             /* Standby Card when Preview is Turned Off */
             <div className="w-full rounded-2xl bg-gunmetal-dark border-2 border-gunmetal/80 p-5 flex flex-col items-center justify-center text-center text-parchment shadow-inner min-h-[170px]">
               <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-2.5 text-limeCream">
-                <svg
-                  className="w-6 h-6 fill-none stroke-current"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </svg>
+                <M3VideocamOff className="w-6 h-6 fill-current" />
               </div>
-              <p className="text-sm font-bold text-white">Camera Preview is Turned Off</p>
-              <p className="text-xs text-kioskGray-light mt-1 max-w-xs leading-relaxed">
+              <p className="text-base font-bold text-white">Camera Preview is Turned Off</p>
+              <p className="text-sm text-kioskGray-light mt-1 max-w-xs leading-relaxed">
                 Hardware barcode scanning remains active in the background. Hold your product in front of the lens to scan.
               </p>
               <button
                 type="button"
                 onClick={togglePreview}
-                className="mt-3.5 px-4 py-2 rounded-xl bg-limeCream text-gunmetal hover:bg-white font-bold text-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95 shadow-md"
+                className="mt-3.5 px-5 py-2.5 rounded-xl bg-limeCream text-gunmetal hover:bg-white font-bold text-sm transition-all cursor-pointer flex items-center gap-2 active:scale-95 shadow-md"
               >
-                <svg
-                  className="w-4 h-4 fill-none stroke-current"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
+                <M3Videocam className="w-5 h-5 fill-current" />
                 <span>Turn On Preview</span>
               </button>
             </div>
           )}
 
           {/* Quick Framing Helper Tips */}
-          <div className="grid grid-cols-3 gap-2 text-center text-[11px] font-medium text-gunmetal bg-parchment p-2.5 rounded-xl border border-parchment-border">
+          <div className="grid grid-cols-3 gap-2 text-center text-xs font-medium text-gunmetal bg-parchment p-2.5 rounded-xl border border-parchment-border">
             <div className="flex flex-col items-center">
               <span className="font-bold text-gunmetal">1. Frame</span>
-              <span className="text-kioskGray text-[10px]">Center in green box</span>
+              <span className="text-kioskGray text-xs">Center in green box</span>
             </div>
             <div className="flex flex-col items-center border-x border-parchment-border px-1">
               <span className="font-bold text-gunmetal">2. Distance</span>
-              <span className="text-kioskGray text-[10px]">10 to 25 cm from lens</span>
+              <span className="text-kioskGray text-xs">10 to 25 cm from lens</span>
             </div>
             <div className="flex flex-col items-center">
               <span className="font-bold text-gunmetal">3. Instant Scan</span>
-              <span className="text-kioskGray text-[10px]">Autofocus reads &lt; 0.5s</span>
+              <span className="text-kioskGray text-xs">Autofocus reads &lt; 0.5s</span>
             </div>
           </div>
 
@@ -287,30 +265,20 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
             <p className="text-xs font-bold uppercase tracking-wider text-kioskGray mb-1.5">
               Or Enter Barcode Manually
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <input
                 type="text"
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
                 placeholder="e.g. 8710400035541"
-                className="flex-1 h-12 px-3.5 rounded-xl border-2 border-gray-300 focus:border-gunmetal text-base text-gunmetal font-medium outline-none transition-colors"
+                className="flex-1 h-[55px] px-4 rounded-xl border-2 border-gray-300 focus:border-gunmetal text-lg text-gunmetal font-medium outline-none transition-colors"
               />
               <button
                 type="submit"
-                className="h-12 px-5 rounded-xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold flex items-center gap-2 active:scale-95 transition-all text-sm shrink-0 cursor-pointer"
+                className="h-[55px] px-6 rounded-xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold flex items-center gap-2 active:scale-95 transition-all text-base shrink-0 cursor-pointer"
               >
                 <span>Add</span>
-                <svg
-                  className="w-4 h-4 fill-none stroke-current"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
+                <M3Add className="w-5 h-5 fill-current" />
               </button>
             </div>
           </form>
@@ -320,7 +288,7 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
             <p className="text-xs font-bold uppercase tracking-wider text-kioskGray mb-2">
               Quick 1-Tap Barcode Test (Seed Catalog)
             </p>
-            <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
               {sampleProducts.slice(0, 6).map((p) => {
                 const cleanName = (p.name || "")
                   .replace(/^(AH|Albert Heijn)\s+/i, "")
@@ -331,10 +299,10 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
                     key={p.barcode}
                     type="button"
                     onClick={() => handlePickSample(p.barcode)}
-                    className="p-2.5 text-left rounded-xl border border-gray-200 hover:border-gunmetal bg-parchment hover:bg-white transition-all text-xs flex flex-col justify-between cursor-pointer active:scale-98"
+                    className="p-3 text-left rounded-xl border border-gray-200 hover:border-gunmetal bg-parchment hover:bg-white transition-all text-xs flex flex-col justify-between cursor-pointer active:scale-98"
                   >
-                    <span className="font-bold text-gunmetal truncate block">{cleanName}</span>
-                    <span className="text-[10px] text-gray-500 font-mono mt-0.5">{p.barcode}</span>
+                    <span className="font-bold text-gunmetal truncate block text-sm">{cleanName}</span>
+                    <span className="text-xs text-gray-500 font-mono mt-0.5">{p.barcode}</span>
                   </button>
                 );
               })}

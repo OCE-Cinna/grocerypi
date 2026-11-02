@@ -42,13 +42,13 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
           1 × {packageSize} added · {qty} units now recorded
         </p>
 
-        {/* Undo Button (Gunmetal #383D3B) */}
+        {/* Undo Button (+15% larger: 83px high) */}
         <div className="mt-8">
           <button
             onClick={() => onUndo(scanEvent)}
-            className="w-full h-18 rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3 active:scale-98 transition-all shadow-md cursor-pointer"
+            className="w-full h-[83px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-2xl flex items-center justify-center gap-3.5 active:scale-98 transition-all shadow-md cursor-pointer"
           >
-            <FigmaUndo className="w-6 h-6 fill-white" />
+            <FigmaUndo className="w-7 h-7 fill-white" />
             <span>Undo</span>
           </button>
         </div>

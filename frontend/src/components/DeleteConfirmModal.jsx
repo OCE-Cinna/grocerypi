@@ -21,13 +21,13 @@ export default function DeleteConfirmModal({ item, onConfirm, onCancel }) {
         <div className="grid grid-cols-2 gap-4 mt-8">
           <button
             onClick={onCancel}
-            className="h-16 rounded-2xl border-2 border-gunmetal bg-transparent hover:bg-gray-50 text-gunmetal font-bold text-lg transition-all active:scale-98 flex items-center justify-center cursor-pointer"
+            className="h-[74px] rounded-2xl border-2 border-gunmetal bg-transparent hover:bg-gray-50 text-gunmetal font-bold text-xl transition-all active:scale-98 flex items-center justify-center cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={() => onConfirm(item)}
-            className="h-16 rounded-2xl bg-dustyRose hover:bg-dustyRose-dark text-gunmetal font-bold text-lg transition-all active:scale-98 flex items-center justify-center shadow-sm cursor-pointer"
+            className="h-[74px] rounded-2xl bg-dustyRose hover:bg-dustyRose-dark text-gunmetal font-bold text-xl transition-all active:scale-98 flex items-center justify-center shadow-sm cursor-pointer"
           >
             Confirm
           </button>

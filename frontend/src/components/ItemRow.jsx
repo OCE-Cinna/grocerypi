@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, Pencil, Check, X } from "lucide-react";
+import { M3Trash as Trash2, M3Edit as Pencil, M3Check as Check, M3Close as X } from "./Material3Icons";
 
 export default function ItemRow({ item, onToggle, onDelete, onEdit }) {
   const [isEditing, setIsEditing] = useState(false);

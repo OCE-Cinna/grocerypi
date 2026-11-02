@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, CheckCircle2, RefreshCw } from "lucide-react";
+import { M3Cart as ShoppingCart, M3CheckCircle as CheckCircle2, M3Refresh as RefreshCw } from "../components/Material3Icons";
 import api from "../api/client";
 
 export default function CartPage() {
@@ -111,15 +111,15 @@ export default function CartPage() {
         <button
           onClick={fetchCartSuggestions}
           disabled={loading}
-          className="p-3 rounded-xl bg-white border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all text-gunmetal flex items-center gap-2 text-sm font-semibold shadow-xs"
+          className="p-3.5 rounded-xl bg-white border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all text-gunmetal flex items-center gap-2.5 text-base font-semibold shadow-xs cursor-pointer"
           title="Refresh calculations"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-limeCream" : ""}`} />
+          <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin text-limeCream" : ""}`} />
           <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
 
-      {/* Store Tabs (80px high, 3 horizontal queue cards matching Figma) */}
+      {/* Store Tabs (92px high, +15% scaled) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
         {storeQueues.map((q) => {
           const isActive = activeQueueId === q.id;
@@ -127,14 +127,14 @@ export default function CartPage() {
             <button
               key={q.id}
               onClick={() => setActiveQueueId(q.id)}
-              className={`h-[80px] rounded-2xl p-4 text-left transition-all border flex flex-col justify-center active:scale-98 ${
+              className={`h-[92px] rounded-2xl p-4.5 text-left transition-all border flex flex-col justify-center active:scale-98 cursor-pointer ${
                 isActive
                   ? "bg-gunmetal text-white border-gunmetal shadow-sm"
                   : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
               }`}
             >
-              <span className="font-bold text-lg leading-tight">{q.title}</span>
-              <span className={`text-xs mt-1 truncate ${isActive ? "text-gray-300" : "text-kioskGray"}`}>
+              <span className="font-bold text-xl leading-tight">{q.title}</span>
+              <span className={`text-sm mt-1 truncate ${isActive ? "text-gray-300" : "text-kioskGray"}`}>
                 {q.subtitle}
               </span>
             </button>
@@ -200,11 +200,11 @@ export default function CartPage() {
         )}
       </div>
 
-      {/* Primary Action Touch Button: Sync Cart */}
+      {/* Primary Action Touch Button: Sync Cart (+15% scaled: 88px high) */}
       <button
         onClick={handleSyncCart}
         disabled={syncing}
-        className="w-full h-[76px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3 transition-all active:scale-98 shadow-md"
+        className="w-full h-[88px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-2xl flex items-center justify-center gap-3.5 transition-all active:scale-98 shadow-md cursor-pointer"
       >
         {synced ? (
           <>

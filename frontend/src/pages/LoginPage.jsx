@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Leaf, Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  M3Cart as ShoppingCart,
+  M3Eco as Leaf,
+  M3Visibility as Eye,
+  M3VisibilityOff as EyeOff,
+  M3Loader as Loader2,
+} from "../components/Material3Icons";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {

@@ -105,50 +105,50 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
         </p>
       </div>
 
-      {/* Right Segmented Controls (Landscape Kiosk Row) */}
-      <div className="flex items-stretch border-t sm:border-t-0 sm:border-l border-gray-200 shrink-0 h-16 sm:h-auto">
+      {/* Right Segmented Controls (Landscape Kiosk Row - +15% scaled) */}
+      <div className="flex items-stretch border-t sm:border-t-0 sm:border-l border-gray-200 shrink-0 h-[74px] sm:h-auto">
         {/* Decrement Button */}
         <button
           onClick={() => onDecrement(item)}
-          className="w-16 sm:w-20 bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200 cursor-pointer"
+          className="w-[74px] sm:w-[92px] bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200 cursor-pointer"
           title="Decrease count"
         >
-          <FigmaMinus className="w-5 h-5 fill-gunmetal" />
+          <FigmaMinus className="w-6 h-6 fill-gunmetal" />
         </button>
 
         {/* Quantity Badge (Lime Cream) */}
-        <div className="w-20 sm:w-24 bg-limeCream flex flex-col items-center justify-center text-gunmetal px-2 select-none border-r border-gray-200">
+        <div className="w-[92px] sm:w-[110px] bg-limeCream flex flex-col items-center justify-center text-gunmetal px-2 select-none border-r border-gray-200">
           <span className="text-2xl font-extrabold leading-tight">{qty}</span>
-          <span className="text-[11px] font-medium leading-none text-gunmetal/90">units</span>
+          <span className="text-xs font-medium leading-none text-gunmetal/90">units</span>
         </div>
 
         {/* Increment Button */}
         <button
           onClick={() => onIncrement(item)}
-          className="w-16 sm:w-20 bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200 cursor-pointer"
+          className="w-[74px] sm:w-[92px] bg-parchment hover:bg-parchment-hover flex items-center justify-center text-gunmetal transition-colors active:bg-gray-200 border-r border-gray-200 cursor-pointer"
           title="Increase count"
         >
-          <FigmaPlus className="w-5 h-5 fill-gunmetal" />
+          <FigmaPlus className="w-6 h-6 fill-gunmetal" />
         </button>
 
         {/* Edit Button */}
         <button
           onClick={() => onEdit(item)}
-          className="w-20 sm:w-24 bg-white hover:bg-gray-50 flex flex-col items-center justify-center text-gunmetal transition-colors border-r border-gray-200 gap-1 active:bg-gray-100 cursor-pointer"
+          className="w-[92px] sm:w-[110px] bg-white hover:bg-gray-50 flex flex-col items-center justify-center text-gunmetal transition-colors border-r border-gray-200 gap-1 active:bg-gray-100 cursor-pointer"
           title="Edit item"
         >
-          <FigmaEdit className="w-4 h-4 stroke-gunmetal" />
-          <span className="text-xs font-medium text-gunmetal">Edit</span>
+          <FigmaEdit className="w-5 h-5 fill-gunmetal" />
+          <span className="text-xs font-semibold text-gunmetal">Edit</span>
         </button>
 
         {/* Delete Button (Dusty Rose with Gunmetal text/icon) */}
         <button
           onClick={() => onDelete(item)}
-          className="w-20 sm:w-24 bg-dustyRose hover:bg-dustyRose-dark text-gunmetal flex flex-col items-center justify-center transition-colors gap-1 active:opacity-90 cursor-pointer"
+          className="w-[92px] sm:w-[110px] bg-dustyRose hover:bg-dustyRose-dark text-gunmetal flex flex-col items-center justify-center transition-colors gap-1 active:opacity-90 cursor-pointer"
           title="Delete item"
         >
-          <FigmaTrash className="w-4 h-4 fill-gunmetal" />
-          <span className="text-xs font-medium text-gunmetal">Delete</span>
+          <FigmaTrash className="w-5 h-5 fill-gunmetal" />
+          <span className="text-xs font-semibold text-gunmetal">Delete</span>
         </button>
       </div>
     </div>

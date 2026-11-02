@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { M3Close as X } from "./Material3Icons";
 
 export default function Modal({ isOpen, onClose, title, children }) {
   const overlayRef = useRef(null);

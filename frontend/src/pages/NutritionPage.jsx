@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CheckCircleIcon, EcoIcon, SpaIcon } from "../components/MaterialIcons";
-import { FigmaNutrition } from "../components/FigmaIcons";
+import { CheckCircleIcon, EcoIcon, SpaIcon, M3BarChart, FigmaNutrition } from "../components/MaterialIcons";
 
 export default function NutritionPage({ summary, onSelectNutrientSort }) {
   const [viewMode, setViewMode] = useState("bars"); // "bars" | "pie"
@@ -147,32 +146,28 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
           </p>
         </div>
 
-        {/* View Switcher Toggle Button (Bars vs Pie Chart) */}
+        {/* View Switcher Toggle Button (Bars vs Pie Chart - +15% scaled) */}
         <div className="flex items-center p-1.5 bg-white border border-gray-300 rounded-2xl shadow-xs shrink-0 self-start sm:self-auto">
           <button
             onClick={() => setViewMode("bars")}
-            className={`h-11 px-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
+            className={`h-[51px] px-5 rounded-xl font-bold text-base flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer ${
               viewMode === "bars"
                 ? "bg-gunmetal text-white shadow-xs"
                 : "text-gunmetal hover:bg-gray-100"
             }`}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
-              <line x1="18" y1="20" x2="18" y2="10" />
-              <line x1="12" y1="20" x2="12" y2="4" />
-              <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
+            <M3BarChart className="w-5 h-5 fill-current" />
             <span>Nutrition Bars</span>
           </button>
           <button
             onClick={() => setViewMode("pie")}
-            className={`h-11 px-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
+            className={`h-[51px] px-5 rounded-xl font-bold text-base flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer ${
               viewMode === "pie"
                 ? "bg-gunmetal text-white shadow-xs"
                 : "text-gunmetal hover:bg-gray-100"
             }`}
           >
-            <FigmaNutrition className="w-4 h-4 stroke-current" />
+            <FigmaNutrition className="w-5 h-5 fill-current" />
             <span>Macro Pie Chart</span>
           </button>
         </div>

@@ -101,27 +101,27 @@ export default function DashboardPage({
           </div>
         </div>
 
-        {/* Primary Action Touch Button (spanning alongside Header & Search on desktop) */}
+        {/* Primary Action Touch Button (+15% larger: 368 × 133 px on desktop) */}
         <button
           onClick={onOpenScanModal}
-          className="w-full md:w-[320px] h-[90px] md:h-[116px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3.5 transition-all active:scale-98 shadow-md shrink-0 cursor-pointer"
+          className="w-full md:w-[368px] h-[104px] md:h-[133px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-2xl flex items-center justify-center gap-4 transition-all active:scale-98 shadow-md shrink-0 cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-            <FigmaBarcode className="w-7 h-7 stroke-[#F7F4F2]" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center">
+            <FigmaBarcode className="w-8 h-8 fill-[#F7F4F2]" />
           </div>
           <span>Scan New Item</span>
         </button>
       </div>
 
-      {/* Quick-Filter Tab Bar (64px high) */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      {/* Quick-Filter Tab Bar (+15% larger: 69px high) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mb-6">
         {CATEGORIES.map((cat) => {
           const isActive = selectedCategory === cat;
           return (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`h-[60px] rounded-2xl font-bold text-base transition-all flex items-center justify-center active:scale-98 ${
+              className={`h-[69px] rounded-2xl font-bold text-lg transition-all flex items-center justify-center active:scale-98 cursor-pointer ${
                 isActive
                   ? "bg-gunmetal text-white shadow-sm"
                   : "bg-white text-gunmetal border-2 border-gray-300/80 hover:bg-gray-50"
@@ -134,8 +134,8 @@ export default function DashboardPage({
       </div>
 
       {/* Diet Filters & Sorting Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 p-3 bg-white/70 rounded-2xl border border-gray-200">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 mb-5 p-3.5 bg-white/70 rounded-2xl border border-gray-200">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <span className="text-xs font-bold text-kioskGray uppercase tracking-wider mr-1">
             Diet:
           </span>
@@ -145,20 +145,20 @@ export default function DashboardPage({
               <button
                 key={diet}
                 onClick={() => setSelectedDiet(diet)}
-                className={`h-9 px-4 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+                className={`h-11 px-5 rounded-xl text-sm font-bold transition-all active:scale-95 border cursor-pointer ${
                   isActive
                     ? "bg-gunmetal text-white border-gunmetal shadow-xs"
                     : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 {diet === "Vegan" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <EcoIcon className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-2">
+                    <EcoIcon className="w-4 h-4 fill-current" />
                     <span>Vegan</span>
                   </span>
                 ) : diet === "Vegetarian" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <SpaIcon className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-2">
+                    <SpaIcon className="w-4 h-4 fill-current" />
                     <span>Vegetarian</span>
                   </span>
                 ) : (
@@ -169,14 +169,14 @@ export default function DashboardPage({
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <span className="text-xs font-bold text-kioskGray uppercase tracking-wider">
             Sort by:
           </span>
           <select
             value={sortByOption}
             onChange={(e) => setSortByOption(e.target.value)}
-            className="h-9 px-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gunmetal outline-none focus:border-gunmetal cursor-pointer"
+            className="h-11 px-3.5 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gunmetal outline-none focus:border-gunmetal cursor-pointer"
           >
             <option value="newest">Newest restocked</option>
             <option value="nutriscore">Nutri-Score (Best A to E)</option>
@@ -197,10 +197,10 @@ export default function DashboardPage({
           </div>
           <button
             onClick={onClearNutrientSort}
-            className="px-3 py-1 bg-white hover:bg-gray-100 rounded-lg text-xs font-bold text-gunmetal border border-gray-300 flex items-center gap-1 transition-colors"
+            className="px-3.5 py-1.5 bg-white hover:bg-gray-100 rounded-xl text-xs font-bold text-gunmetal border border-gray-300 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <span>Reset Sort</span>
-            <X className="w-3.5 h-3.5" />
+            <FigmaClose className="w-4 h-4 fill-current" />
           </button>
         </div>
       )}

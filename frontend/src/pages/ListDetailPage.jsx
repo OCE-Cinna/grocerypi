@@ -1,9 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Loader2, Trash2, CheckCircle2,
-  Circle, Package
-} from "lucide-react";
+  M3ArrowBack as ArrowLeft,
+  M3Add as Plus,
+  M3Loader as Loader2,
+  M3Trash as Trash2,
+  M3CheckCircle as CheckCircle2,
+  M3Circle as Circle,
+  M3Package as Package
+} from "../components/Material3Icons";
 import { CelebrationIcon } from "../components/MaterialIcons";
 import api from "../api/client";
 import ItemRow from "../components/ItemRow";
