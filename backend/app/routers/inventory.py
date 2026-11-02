@@ -99,7 +99,7 @@ def ingest_barcode_scan(payload: BarcodeScanRequest, db: Session = Depends(get_d
 
 @router.get("", response_model=List[InventoryItemOut])
 def get_inventory(
-    category: Optional[ItemCategory] = None,
+    category: Optional[str] = None,
     preferred_store: Optional[PreferredStore] = None,
     item_status: Optional[InventoryStatus] = None,
     sort_by: Optional[str] = Query(
@@ -118,7 +118,17 @@ def get_inventory(
     query = db.query(InventoryItem).join(ProductCatalog).options(joinedload(InventoryItem.product))
 
     if category:
-        query = query.filter(ProductCatalog.category == category)
+        cat_lower = category.strip().lower()
+        if cat_lower in ["pet", "pets"]:
+            query = query.filter(ProductCatalog.category == ItemCategory.PET)
+        elif cat_lower == "food":
+            query = query.filter(ProductCatalog.category == ItemCategory.FOOD)
+        elif cat_lower == "household":
+            query = query.filter(ProductCatalog.category == ItemCategory.HOUSEHOLD)
+        elif cat_lower == "hygiene":
+            query = query.filter(ProductCatalog.category == ItemCategory.HYGIENE)
+        else:
+            query = query.filter(ProductCatalog.category == category)
     if preferred_store:
         query = query.filter(ProductCatalog.preferred_store == preferred_store)
     if item_status:

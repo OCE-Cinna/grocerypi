@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Search, X } from "lucide-react";
 import GroceryCard from "../components/GroceryCard";
 
-const CATEGORIES = ["All", "Food", "Pets", "Household", "Hygiene"];
+const CATEGORIES = ["All", "Food", "Pet", "Household", "Hygiene"];
 
 export default function DashboardPage({
   items,
@@ -27,9 +27,13 @@ export default function DashboardPage({
         p.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.barcode?.includes(searchQuery);
 
+      const itemCat = (p.category || "").toLowerCase();
+      const selCat = selectedCategory.toLowerCase();
       const matchesCategory =
         selectedCategory === "All" ||
-        p.category?.toLowerCase() === selectedCategory.toLowerCase();
+        itemCat === selCat ||
+        (selCat === "pets" && itemCat === "pet") ||
+        (selCat === "pet" && itemCat === "pets");
 
       return matchesSearch && matchesCategory;
     });
