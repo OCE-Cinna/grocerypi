@@ -1,30 +1,9 @@
 import axios from "axios";
 
+// Kiosk API client: connects directly to local FastAPI backend
 const api = axios.create({
   baseURL: "/",
   timeout: 10000,
 });
-
-// Attach JWT token to every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("gp_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Auto-logout on 401
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem("gp_token");
-      localStorage.removeItem("gp_user");
-      window.location.href = "/login";
-    }
-    return Promise.reject(err);
-  }
-);
 
 export default api;

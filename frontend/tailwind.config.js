@@ -4,55 +4,45 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"],
       },
       colors: {
-        brand: {
-          50:  "#f0fdf4",
-          100: "#dcfce7",
-          200: "#bbf7d0",
-          300: "#86efac",
-          400: "#4ade80",
-          500: "#22c55e",
-          600: "#16a34a",
-          700: "#15803d",
-          800: "#166534",
-          900: "#14532d",
-          950: "#052e16",
+        // Official GroceryPi 5-Color Kitchen Palette (from Figma / coolors.co)
+        gunmetal: {
+          DEFAULT: "#383D3B",
+          dark: "#2A2E2C",
+          light: "#4E5451",
         },
-        surface: {
-          900: "#0a0f0d",
-          800: "#111a15",
-          700: "#1a2720",
-          600: "#243329",
-          500: "#2d4036",
+        parchment: {
+          DEFAULT: "#F7F4F2",
+          card: "#FFFFFF",
+          hover: "#EFECE8",
+          border: "#E2DDD8",
+        },
+        kioskGray: {
+          DEFAULT: "#7C7C7C",
+          light: "#A0A0A0",
+          subtle: "#D6D4D1",
+        },
+        limeCream: {
+          DEFAULT: "#C3E48B",
+          dark: "#A8D462",
+          light: "#E1F2C2",
+        },
+        dustyRose: {
+          DEFAULT: "#CD7A7A",
+          dark: "#B85C5C",
+          light: "#F0C8C8",
         },
       },
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+      minHeight: {
+        touch: "48px",
       },
-      animation: {
-        "fade-in": "fadeIn 0.3s ease-out",
-        "slide-up": "slideUp 0.3s ease-out",
-        "scale-in": "scaleIn 0.2s ease-out",
-      },
-      keyframes: {
-        fadeIn: {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
-        },
-        slideUp: {
-          "0%": { opacity: "0", transform: "translateY(16px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        scaleIn: {
-          "0%": { opacity: "0", transform: "scale(0.95)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
+      minWidth: {
+        touch: "48px",
       },
     },
   },
