@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Search, X } from "lucide-react";
 import GroceryCard from "../components/GroceryCard";
 
-const CATEGORIES = ["All", "Food", "Pet", "Household", "Hygiene"];
+const CATEGORIES = ["All", "Food", "Pets", "Household", "Hygiene"];
 
 export default function DashboardPage({
   items,
@@ -64,21 +64,41 @@ export default function DashboardPage({
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 pb-20 select-none">
-      {/* Top Header Row: Title & Large Scan New Item Button */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
-        <div>
+      {/* Top Header Row: Left (Title + Subtitle + Search) & Right (Scan New Item) */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">
+        <div className="flex-1">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gunmetal tracking-tight">
             Your kitchen, stocked.
           </h2>
           <p className="text-base text-kioskGray mt-1.5 font-normal">
             Scan items in. Use + / – for corrections only.
           </p>
+
+          {/* Search Bar (58px high) */}
+          <div className="relative mt-4">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search inventory"
+              className="w-full h-[58px] pl-12 pr-4 bg-white rounded-2xl border border-gray-300 focus:border-gunmetal text-base text-gunmetal placeholder-gray-400 outline-none transition-all shadow-xs"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gunmetal p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Primary Action Touch Button (140-150px high on Kiosk) */}
+        {/* Primary Action Touch Button (spanning alongside Header & Search on desktop) */}
         <button
           onClick={onOpenScanModal}
-          className="w-full md:w-[280px] h-[100px] md:h-[130px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3.5 transition-all active:scale-98 shadow-md"
+          className="w-full md:w-[320px] h-[90px] md:h-[116px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3.5 transition-all active:scale-98 shadow-md shrink-0 cursor-pointer"
         >
           <div className="w-8 h-8 rounded-lg flex items-center justify-center font-mono">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -93,26 +113,6 @@ export default function DashboardPage({
           </div>
           <span>Scan New Item</span>
         </button>
-      </div>
-
-      {/* Search Bar (58px high) */}
-      <div className="relative mb-5">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search inventory"
-          className="w-full h-[58px] pl-12 pr-4 bg-white rounded-2xl border border-gray-300 focus:border-gunmetal text-base text-gunmetal placeholder-gray-400 outline-none transition-all shadow-xs"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gunmetal p-1"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
       </div>
 
       {/* Quick-Filter Tab Bar (64px high) */}
@@ -222,8 +222,10 @@ export default function DashboardPage({
       {/* Footer Info Row */}
       <div className="flex items-center justify-between text-xs text-kioskGray mt-6 pt-3 border-t border-gray-300">
         <span>{filteredItems.length} items · illustrative household · 14 Oct 2026</span>
-        {filteredItems.length > 5 && (
-          <span className="font-medium text-gray-500">Scroll for more items ∨</span>
+        {filteredItems.length > 2 && (
+          <span className="font-medium text-gray-500">
+            Scroll for {Math.max(1, filteredItems.length - 2)} more items ∨
+          </span>
         )}
       </div>
     </div>

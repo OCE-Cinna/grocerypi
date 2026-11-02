@@ -15,8 +15,13 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
     .trim();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gunmetal/60 backdrop-blur-xs select-none">
-      <div className="bg-white rounded-3xl p-8 sm:p-10 max-w-lg w-full shadow-2xl border border-gray-200 text-center relative">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget && onClose) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gunmetal/60 backdrop-blur-xs select-none"
+    >
+      <div className="bg-white rounded-3xl p-8 sm:p-10 max-w-lg w-full shadow-2xl border border-gray-200 text-center relative animate-scale-in">
         {/* Top Lime Cream Check Icon */}
         <div className="w-16 h-16 rounded-2xl bg-limeCream flex items-center justify-center mx-auto mb-5 shadow-xs">
           <Check className="w-9 h-9 stroke-[3] text-gunmetal" />
@@ -41,7 +46,7 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
         <div className="mt-8">
           <button
             onClick={() => onUndo(scanEvent)}
-            className="w-full h-18 rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3 active:scale-98 transition-all shadow-md"
+            className="w-full h-18 rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl flex items-center justify-center gap-3 active:scale-98 transition-all shadow-md cursor-pointer"
           >
             <Undo2 className="w-6 h-6 stroke-[2.5]" />
             <span>Undo</span>

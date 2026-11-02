@@ -131,21 +131,21 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
         {/* Edit Button */}
         <button
           onClick={() => onEdit(item)}
-          className="w-20 sm:w-24 bg-white hover:bg-gray-50 flex flex-col items-center justify-center text-gray-700 transition-colors border-r border-gray-200 gap-1 active:bg-gray-100"
+          className="w-20 sm:w-24 bg-white hover:bg-gray-50 flex flex-col items-center justify-center text-gunmetal transition-colors border-r border-gray-200 gap-1 active:bg-gray-100 cursor-pointer"
           title="Edit item"
         >
-          <Pencil className="w-4 h-4 stroke-[2]" />
-          <span className="text-xs font-medium">Edit</span>
+          <Pencil className="w-4 h-4 stroke-[2] text-gunmetal" />
+          <span className="text-xs font-medium text-gunmetal">Edit</span>
         </button>
 
-        {/* Delete Button (Dusty Rose) */}
+        {/* Delete Button (Dusty Rose with Gunmetal text/icon) */}
         <button
           onClick={() => onDelete(item)}
-          className="w-20 sm:w-24 bg-dustyRose hover:bg-dustyRose-dark text-white flex flex-col items-center justify-center transition-colors gap-1 active:opacity-90"
+          className="w-20 sm:w-24 bg-dustyRose hover:bg-dustyRose-dark text-gunmetal flex flex-col items-center justify-center transition-colors gap-1 active:opacity-90 cursor-pointer"
           title="Delete item"
         >
-          <Trash2 className="w-4 h-4 stroke-[2]" />
-          <span className="text-xs font-medium text-white">Delete</span>
+          <Trash2 className="w-4 h-4 stroke-[2] text-gunmetal" />
+          <span className="text-xs font-medium text-gunmetal">Delete</span>
         </button>
       </div>
     </div>
