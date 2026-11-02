@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -56,10 +57,14 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         resolution: Tuple[int, int] = (1280, 720),
         debounce_seconds: float = 2.5,
         fps: int = 15,
+        vflip: Optional[bool] = None,
+        hflip: Optional[bool] = None,
     ):
         self.resolution = resolution
         self.debounce_seconds = debounce_seconds
         self.fps = fps
+        self.vflip = vflip if vflip is not None else os.getenv("CAMERA_VFLIP", "true").lower() in ("true", "1", "yes")
+        self.hflip = hflip if hflip is not None else os.getenv("CAMERA_HFLIP", "false").lower() in ("true", "1", "yes")
         self._is_running = False
         self._thread: Optional[threading.Thread] = None
         self._on_scan_callback: Optional[Callable[[str], None]] = None
@@ -161,11 +166,17 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             import picamera2
             self._picam2 = picamera2.Picamera2()
 
-            # Configure Camera Module v3 preview/capture stream
+            # Configure Camera Module v3 stream with hardware sensor orientation transform
+            transform = picamera2.libcamera.Transform(
+                vflip=1 if self.vflip else 0,
+                hflip=1 if self.hflip else 0,
+            )
             config = self._picam2.create_video_configuration(
-                main={"size": self.resolution, "format": "RGB888"}
+                main={"size": self.resolution, "format": "RGB888"},
+                transform=transform,
             )
             self._picam2.configure(config)
+            logger.info(f"Picamera2 initialized with hardware transform: vflip={self.vflip}, hflip={self.hflip}")
             
             # Start camera hardware
             self._picam2.start()
