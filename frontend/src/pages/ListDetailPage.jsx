@@ -4,6 +4,7 @@ import {
   ArrowLeft, Plus, Loader2, Trash2, CheckCircle2,
   Circle, Package
 } from "lucide-react";
+import { CelebrationIcon } from "../components/MaterialIcons";
 import api from "../api/client";
 import ItemRow from "../components/ItemRow";
 import Modal from "../components/Modal";
@@ -132,8 +133,9 @@ export default function ListDetailPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
         <p className="text-red-400 mb-4">{error || "List not found."}</p>
-        <button onClick={() => navigate("/")} className="btn-ghost">
-          ← Back to Dashboard
+        <button onClick={() => navigate("/")} className="btn-ghost inline-flex items-center gap-1.5">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Dashboard</span>
         </button>
       </div>
     );
@@ -180,8 +182,15 @@ export default function ListDetailPage() {
                 ) : (
                   <Circle size={16} className="text-gray-600" />
                 )}
-                <span className={allDone ? "text-brand-400 font-semibold" : "text-gray-400"}>
-                  {allDone ? "All done! 🎉" : `${checkedCount} of ${totalCount} items checked`}
+                <span className={allDone ? "text-brand-400 font-semibold inline-flex items-center gap-1.5" : "text-gray-400"}>
+                  {allDone ? (
+                    <>
+                      <span>All done!</span>
+                      <CelebrationIcon className="w-4 h-4 text-brand-400" />
+                    </>
+                  ) : (
+                    `${checkedCount} of ${totalCount} items checked`
+                  )}
                 </span>
               </div>
               <span className="text-xs text-gray-500">{Math.round(progress)}%</span>
@@ -263,7 +272,7 @@ export default function ListDetailPage() {
             <input
               id="item-name"
               className="input"
-              placeholder="e.g. Apples, Milk, Bread…"
+              placeholder="e.g. Apples, Milk, Bread..."
               value={newItem.name}
               onChange={(e) => setNewItem((f) => ({ ...f, name: e.target.value }))}
               required
@@ -290,7 +299,7 @@ export default function ListDetailPage() {
               <input
                 id="item-unit"
                 className="input"
-                placeholder="kg, pcs, ml…"
+                placeholder="kg, pcs, ml..."
                 value={newItem.unit}
                 onChange={(e) => setNewItem((f) => ({ ...f, unit: e.target.value }))}
               />

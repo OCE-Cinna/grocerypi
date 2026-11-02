@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, Pencil, Check } from "lucide-react";
+import { Trash2, Pencil, Check, X } from "lucide-react";
 
 export default function ItemRow({ item, onToggle, onDelete, onEdit }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -55,7 +55,7 @@ export default function ItemRow({ item, onToggle, onDelete, onEdit }) {
           className="btn-icon btn-ghost shrink-0 text-gray-400"
           title="Cancel"
         >
-          ✕
+          <X size={15} />
         </button>
       </li>
     );

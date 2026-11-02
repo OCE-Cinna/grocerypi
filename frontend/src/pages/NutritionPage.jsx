@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { BarChart3, PieChart as PieChartIcon, Leaf, Sparkles } from "lucide-react";
+import { BarChart3, PieChart as PieChartIcon } from "lucide-react";
+import { CheckCircleIcon, EcoIcon, SpaIcon } from "../components/MaterialIcons";
 
 export default function NutritionPage({ summary, onSelectNutrientSort }) {
   const [viewMode, setViewMode] = useState("bars"); // "bars" | "pie"
@@ -233,7 +234,7 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
             <div className="flex flex-row lg:flex-col gap-3">
               <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
                 <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <Sparkles className="w-5 h-5" />
+                  <EcoIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <span className="text-2xl font-black text-emerald-950 block leading-tight">
@@ -247,7 +248,7 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
 
               <div className="p-3.5 sm:p-4 rounded-2xl bg-green-50 border border-green-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
                 <div className="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <Leaf className="w-5 h-5" />
+                  <SpaIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <span className="text-2xl font-black text-green-950 block leading-tight">
@@ -260,8 +261,9 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
               </div>
             </div>
 
-            <p className="text-[11px] text-kioskGray font-medium text-center lg:text-left">
-              ✓ Mutually exclusive · No double counting ({totalVegan + totalVeg} total meat-free)
+            <p className="text-[11px] text-kioskGray font-medium text-center lg:text-left flex items-center gap-1.5 justify-center lg:justify-start">
+              <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Mutually exclusive · No double counting ({totalVegan + totalVeg} total meat-free)</span>
             </p>
           </div>
         </div>

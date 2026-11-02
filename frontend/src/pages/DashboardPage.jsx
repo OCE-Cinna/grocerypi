@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, ChevronDown } from "lucide-react";
 import GroceryCard from "../components/GroceryCard";
+import { EcoIcon, SpaIcon } from "../components/MaterialIcons";
 
 const CATEGORIES = ["All", "Food", "Pets", "Household", "Hygiene"];
 
@@ -153,7 +154,19 @@ export default function DashboardPage({
                     : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                {diet === "Vegan" ? "🌱 Vegan" : diet === "Vegetarian" ? "🥬 Vegetarian" : "All Diets"}
+                {diet === "Vegan" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <EcoIcon className="w-3.5 h-3.5" />
+                    <span>Vegan</span>
+                  </span>
+                ) : diet === "Vegetarian" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <SpaIcon className="w-3.5 h-3.5" />
+                    <span>Vegetarian</span>
+                  </span>
+                ) : (
+                  "All Diets"
+                )}
               </button>
             );
           })}
@@ -169,7 +182,7 @@ export default function DashboardPage({
             className="h-9 px-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gunmetal outline-none focus:border-gunmetal cursor-pointer"
           >
             <option value="newest">Newest restocked</option>
-            <option value="nutriscore">Nutri-Score (Best A→E)</option>
+            <option value="nutriscore">Nutri-Score (Best A to E)</option>
             <option value="protein">Protein (Highest)</option>
             <option value="fiber">Fiber (Highest)</option>
           </select>
@@ -223,8 +236,9 @@ export default function DashboardPage({
       <div className="flex items-center justify-between text-xs text-kioskGray mt-6 pt-3 border-t border-gray-300">
         <span>{filteredItems.length} items · illustrative household · 14 Oct 2026</span>
         {filteredItems.length > 2 && (
-          <span className="font-medium text-gray-500">
-            Scroll for {Math.max(1, filteredItems.length - 2)} more items ∨
+          <span className="font-medium text-gray-500 inline-flex items-center gap-1">
+            <span>Scroll for {Math.max(1, filteredItems.length - 2)} more items</span>
+            <ChevronDown className="w-3.5 h-3.5" />
           </span>
         )}
       </div>
