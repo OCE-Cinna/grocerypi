@@ -222,3 +222,4 @@ export function FigmaClose({ className = "w-5 h-5", ...props }) {
     </svg>
   );
 }
+
