@@ -69,13 +69,23 @@ def get_cart_replenishment_suggestions(
             urgency = "normal"
             status_text = "next shop"
 
-        dual_tag = " · dual-store (AH + Jumbo)" if (item.is_dual_store or prod.is_dual_store) else ""
-        subtext = f"Usually scanned every {int(round(effective_interval))} days · {status_text}{dual_tag}"
+        subtext = f"Usually scanned every {int(round(effective_interval))} days · {status_text}"
+
+        import re
+        clean_name = re.sub(r"^(AH|Albert Heijn)\s+", "", prod.name, flags=re.IGNORECASE).strip()
+        clean_name = re.sub(r"\s+\b(AH|Albert Heijn)\b", "", clean_name, flags=re.IGNORECASE).strip()
+
+        brand_val = prod.brand
+        if brand_val and brand_val.strip().lower() in ["ah", "albert heijn", "ah biologisch", "ah terra", "ah basic"]:
+            brand_val = None
+        if brand_val and brand_val.lower() in clean_name.lower():
+            brand_val = None
 
         sug = schemas.CartSuggestionItem(
             id=item.id,
             store=prod.preferred_store.value if hasattr(prod.preferred_store, "value") else str(prod.preferred_store),
-            name=prod.name,
+            name=clean_name,
+            brand=brand_val,
             subtext=subtext,
             quantity_text=quantity_text,
             is_dual_store=bool(item.is_dual_store or prod.is_dual_store),

@@ -47,11 +47,33 @@ NON_GROCERY_TERMS = {
 
 
 def normalize_item_name(raw_name: str) -> str:
-    """Strip marketing tags like BONUS or voordeel from item names."""
+    """
+    Cleans raw item descriptions:
+    - Removes 'AH' or 'Albert Heijn' prefix/tag
+    - Strips marketing promo tags like BONUS or voordeel
+    """
     name = raw_name
-    for tag in [" BONUS", " bonus", " voordeel", " VOORDEEL", " 1+1 gratis", " stapelkorting"]:
+    for tag in [" BONUS", " bonus", " voordeel", " VOORDEEL", " 1+1 gratis", " stapelkorting", " 2e halve prijs"]:
         name = name.replace(tag, "")
+    # Strip leading or isolated AH / Albert Heijn
+    name = re.sub(r"^(AH|Albert Heijn)\s+", "", name, flags=re.IGNORECASE).strip()
+    name = re.sub(r"\s+\b(AH|Albert Heijn)\b", "", name, flags=re.IGNORECASE).strip()
     return re.sub(r"\s+", " ", name).strip()
+
+
+def clean_brand(brand: Optional[str], product_name: str) -> Optional[str]:
+    """
+    If brand is AH/Albert Heijn, remove it.
+    Only keep brand if it's not already in the name of the product.
+    """
+    if not brand:
+        return None
+    b = brand.strip()
+    if b.lower() in ["ah", "albert heijn", "ah biologisch", "ah terra", "ah basic"]:
+        return None
+    if b.lower() in product_name.lower():
+        return None
+    return b
 
 
 def infer_category(name: str) -> models.ItemCategory:
@@ -276,7 +298,8 @@ def seed_database():
                 barcode = generate_fallback_barcode(f"{norm_name}-{len(norm_name)}")
 
             nutri = ah_data.get("nutrition") or {}
-            brand = ah_data.get("brand") or ("AH" if norm_name.startswith("AH ") else "Albert Heijn")
+            raw_brand = ah_data.get("brand")
+            brand = clean_brand(raw_brand, norm_name)
             pkg_size = ah_data.get("package_size")
 
             prod = models.ProductCatalog(

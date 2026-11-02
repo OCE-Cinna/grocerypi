@@ -34,7 +34,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718906001007",
         "name": "Zaanse Halfvolle Melk",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.FOOD,
         "preferred_store": PreferredStore.AH,
         "package_size": "1L",
@@ -52,7 +52,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718907058864",
         "name": "Volkoren Havervlokken",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.FOOD,
         "preferred_store": PreferredStore.AH,
         "package_size": "500g",
@@ -106,7 +106,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718907231458",
         "name": "Griekse Stijl Yoghurt 10%",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.FOOD,
         "preferred_store": PreferredStore.AH,
         "package_size": "500g",
@@ -124,7 +124,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718907456789",
         "name": "Scharrel Kipfilet",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.FOOD,
         "preferred_store": PreferredStore.AH,
         "package_size": "300g",
@@ -160,7 +160,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718907102932",
         "name": "Scharreleieren Klasse M",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.FOOD,
         "preferred_store": PreferredStore.AH,
         "package_size": "10 stuks",
@@ -196,7 +196,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718906103985",
         "name": "Vaatwastabletten All-in-1",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.HOUSEHOLD,
         "preferred_store": PreferredStore.AH,
         "package_size": "40 stuks",
@@ -214,7 +214,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718906501231",
         "name": "Tandpasta Fresh & Clean",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.HYGIENE,
         "preferred_store": PreferredStore.AH,
         "package_size": "75ml",
@@ -232,7 +232,7 @@ SEED_PRODUCTS = [
     {
         "barcode": "8718906204569",
         "name": "Kattenbrokjes Zalm & Groente",
-        "brand": "Albert Heijn",
+        "brand": None,
         "category": ItemCategory.PET,
         "preferred_store": PreferredStore.AH,
         "package_size": "1.5kg",

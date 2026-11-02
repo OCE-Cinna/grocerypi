@@ -75,17 +75,23 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
             Quick 1-Tap Barcode Test (Seed Catalog)
           </p>
           <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-            {sampleProducts.slice(0, 6).map((p) => (
-              <button
-                key={p.barcode}
-                type="button"
-                onClick={() => handlePickSample(p.barcode)}
-                className="p-3 text-left rounded-xl border border-gray-200 hover:border-gunmetal bg-parchment hover:bg-white transition-all text-xs flex flex-col justify-between"
-              >
-                <span className="font-bold text-gunmetal truncate block">{p.name}</span>
-                <span className="text-[10px] text-gray-500 font-mono mt-1">{p.barcode}</span>
-              </button>
-            ))}
+            {sampleProducts.slice(0, 6).map((p) => {
+              const cleanName = (p.name || "")
+                .replace(/^(AH|Albert Heijn)\s+/i, "")
+                .replace(/\s+\b(AH|Albert Heijn)\b/i, "")
+                .trim();
+              return (
+                <button
+                  key={p.barcode}
+                  type="button"
+                  onClick={() => handlePickSample(p.barcode)}
+                  className="p-3 text-left rounded-xl border border-gray-200 hover:border-gunmetal bg-parchment hover:bg-white transition-all text-xs flex flex-col justify-between"
+                >
+                  <span className="font-bold text-gunmetal truncate block">{cleanName}</span>
+                  <span className="text-[10px] text-gray-500 font-mono mt-1">{p.barcode}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

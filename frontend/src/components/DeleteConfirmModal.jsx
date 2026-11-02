@@ -2,7 +2,11 @@ import React from "react";
 
 export default function DeleteConfirmModal({ item, onConfirm, onCancel }) {
   if (!item) return null;
-  const name = item.product?.name || "this item";
+  const rawName = item.product?.name || "this item";
+  const name = rawName
+    .replace(/^(AH|Albert Heijn)\s+/i, "")
+    .replace(/\s+\b(AH|Albert Heijn)\b/i, "")
+    .trim();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gunmetal/60 backdrop-blur-xs select-none">

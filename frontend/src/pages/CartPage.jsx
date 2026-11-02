@@ -145,45 +145,54 @@ export default function CartPage() {
       {/* Suggested Items List */}
       <div className="space-y-3.5 mb-7">
         {currentQueue.items && currentQueue.items.length > 0 ? (
-          currentQueue.items.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white border border-gray-300/80 rounded-2xl p-5 sm:p-6 flex items-center justify-between shadow-xs transition-all hover:border-gray-400"
-            >
-              <div className="flex items-center gap-3.5">
-                <span
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${
-                    item.store === "AH"
-                      ? "border-blue-300 text-blue-700 bg-blue-50"
-                      : item.store === "Jumbo"
-                      ? "border-amber-300 text-amber-700 bg-amber-50"
-                      : "border-gray-400 text-gray-700 bg-gray-50"
-                  }`}
-                >
-                  {item.store}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-gunmetal tracking-tight">
-                      {item.name}
-                    </h3>
-                    {item.is_dual_store && (
-                      <span className="text-[11px] font-semibold text-kioskGray bg-gray-100 px-2 py-0.5 rounded-full">
-                        Dual-store
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-kioskGray mt-0.5 font-normal">
-                    {item.subtext}
-                  </p>
-                </div>
-              </div>
+          currentQueue.items.map((item) => {
+            // Clean product name: remove AH / Albert Heijn
+            const cleanName = (item.name || "")
+              .replace(/^(AH|Albert Heijn)\s+/i, "")
+              .replace(/\s+\b(AH|Albert Heijn)\b/i, "")
+              .trim();
 
-              <span className="text-xl sm:text-2xl font-bold text-gunmetal shrink-0">
-                {item.quantity_text}
-              </span>
-            </div>
-          ))
+            // Brand rules: remove if AH, only keep if not in name
+            const rawBrand = item.brand?.trim();
+            const isAHBrand = !rawBrand || ["ah", "albert heijn", "ah biologisch", "ah terra", "ah basic"].includes(rawBrand.toLowerCase());
+            const brandInName = rawBrand && cleanName.toLowerCase().includes(rawBrand.toLowerCase());
+            const displayBrand = !isAHBrand && !brandInName ? rawBrand : null;
+
+            return (
+              <div
+                key={item.id}
+                className="bg-white border border-gray-300/80 rounded-2xl p-5 sm:p-6 flex items-center justify-between shadow-xs transition-all hover:border-gray-400"
+              >
+                <div className="flex items-center gap-3.5">
+                  {/* Keep ONLY the store tag */}
+                  <span
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                      item.store === "AH"
+                        ? "border-blue-300 text-blue-700 bg-blue-50"
+                        : item.store === "Jumbo"
+                        ? "border-amber-300 text-amber-700 bg-amber-50"
+                        : "border-gray-400 text-gray-700 bg-gray-50"
+                    }`}
+                  >
+                    {item.store}
+                  </span>
+                  <div>
+                    <h3 className="text-xl font-bold text-gunmetal tracking-tight">
+                      {cleanName}
+                    </h3>
+                    <p className="text-sm text-kioskGray mt-0.5 font-normal">
+                      {displayBrand && <span className="font-medium text-gray-600">{displayBrand} · </span>}
+                      {item.subtext}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-xl sm:text-2xl font-bold text-gunmetal shrink-0">
+                  {item.quantity_text}
+                </span>
+              </div>
+            );
+          })
         ) : (
           <div className="bg-white border border-gray-300 rounded-2xl p-8 text-center text-kioskGray">
             No replenishment needed for {activeQueueId} right now. All stocked items are healthy!

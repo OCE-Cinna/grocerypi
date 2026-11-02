@@ -5,6 +5,18 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
   const product = item.product || {};
   const qty = item.quantity ?? 1;
 
+  // Clean name: remove AH / Albert Heijn
+  const cleanName = (product.name || "")
+    .replace(/^(AH|Albert Heijn)\s+/i, "")
+    .replace(/\s+\b(AH|Albert Heijn)\b/i, "")
+    .trim();
+
+  // Brand rules: remove if AH/Albert Heijn, only keep if not already in product name
+  const rawBrand = product.brand?.trim();
+  const isAHBrand = !rawBrand || ["ah", "albert heijn", "ah biologisch", "ah terra", "ah basic"].includes(rawBrand.toLowerCase());
+  const brandInName = rawBrand && cleanName.toLowerCase().includes(rawBrand.toLowerCase());
+  const displayBrand = !isAHBrand && !brandInName ? rawBrand : null;
+
   // Format date: "14 Oct 2026"
   const formatDate = (dateStr) => {
     if (!dateStr) return "Recently";
@@ -35,9 +47,17 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
       {/* Left Details Column */}
       <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Store Tag (Only store tag kept) */}
+          {product.preferred_store && (
+            <span className="px-2 py-0.5 rounded-md text-xs font-bold border border-gray-400 text-gray-700 bg-gray-50">
+              {product.preferred_store}
+            </span>
+          )}
+
           <h3 className="text-xl sm:text-2xl font-bold text-gunmetal tracking-tight">
-            {product.name}
+            {cleanName}
           </h3>
+
           <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
             {product.category || "Food"}
           </span>
@@ -46,10 +66,7 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
 
         <p className="text-sm text-kioskGray font-normal mt-1.5">
           Last restocked · {formatDate(item.last_restocked_at)}
-          {product.brand && <span className="ml-2 text-gray-400">({product.brand})</span>}
-          {product.preferred_store && (
-            <span className="ml-2 text-xs font-medium text-gray-500">[{product.preferred_store}]</span>
-          )}
+          {displayBrand && <span className="ml-2 text-gray-500">· {displayBrand}</span>}
         </p>
       </div>
 

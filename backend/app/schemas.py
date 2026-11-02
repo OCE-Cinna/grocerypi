@@ -236,6 +236,7 @@ class CartSuggestionItem(BaseModel):
     id: int
     store: str
     name: str
+    brand: Optional[str] = None
     subtext: str
     quantity_text: str
     is_dual_store: bool = False

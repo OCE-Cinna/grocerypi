@@ -220,10 +220,21 @@ class AHClient:
                             except ValueError:
                                 pass
 
+        title = search_res.get("title") or clean_name
+        import re
+        title = re.sub(r"^(AH|Albert Heijn)\s+", "", title, flags=re.IGNORECASE).strip()
+        title = re.sub(r"\s+\b(AH|Albert Heijn)\b", "", title, flags=re.IGNORECASE).strip()
+
+        brand_val = search_res.get("brand")
+        if brand_val and brand_val.strip().lower() in ["ah", "albert heijn", "ah biologisch", "ah terra", "ah basic"]:
+            brand_val = None
+        if brand_val and brand_val.lower() in title.lower():
+            brand_val = None
+
         return {
-            "name": search_res.get("title") or clean_name,
+            "name": title,
             "barcode": gtin,
-            "brand": search_res.get("brand"),
+            "brand": brand_val,
             "package_size": search_res.get("salesUnitSize"),
             "webshop_id": webshop_id,
             "nutrition": nutrition_facts,

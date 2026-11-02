@@ -9,6 +9,11 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
   const packageSize = product.package_size || "1 unit";
   const qty = inv.quantity ?? 1;
 
+  const cleanName = (product.name || "Item Scanned")
+    .replace(/^(AH|Albert Heijn)\s+/i, "")
+    .replace(/\s+\b(AH|Albert Heijn)\b/i, "")
+    .trim();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gunmetal/60 backdrop-blur-xs select-none">
       <div className="bg-white rounded-3xl p-8 sm:p-10 max-w-lg w-full shadow-2xl border border-gray-200 text-center relative">
@@ -19,7 +24,7 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
 
         {/* Product Name */}
         <h2 className="text-3xl font-extrabold text-gunmetal tracking-tight">
-          {product.name || "Item Scanned"}
+          {cleanName}
         </h2>
 
         {/* Status Line */}
