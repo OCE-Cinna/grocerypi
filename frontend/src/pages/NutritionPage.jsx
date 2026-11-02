@@ -228,35 +228,41 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
             </p>
           </div>
 
-          {/* Right: Vegetarian & Vegan Counters */}
-          <div className="lg:border-l lg:border-gray-200 lg:pl-8 flex flex-row lg:flex-col gap-4 shrink-0">
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5" />
+          {/* Right: Vegetarian & Vegan Counters (Mutually exclusive - no double counting) */}
+          <div className="lg:border-l lg:border-gray-200 lg:pl-8 flex flex-col gap-3 shrink-0">
+            <div className="flex flex-row lg:flex-col gap-3">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-2xl font-black text-emerald-950 block leading-tight">
+                    {totalVegan}
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-800">
+                    Vegan (100% plant-based)
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="text-2xl font-black text-emerald-950 block leading-tight">
-                  {totalVegan}
-                </span>
-                <span className="text-xs font-semibold text-emerald-800">
-                  Vegan stock items
-                </span>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-green-50 border border-green-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
+                <div className="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Leaf className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-2xl font-black text-green-950 block leading-tight">
+                    {totalVeg}
+                  </span>
+                  <span className="text-xs font-semibold text-green-800">
+                    Vegetarian (dairy & eggs)
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-green-50 border border-green-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
-              <div className="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center shrink-0">
-                <Leaf className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-2xl font-black text-green-950 block leading-tight">
-                  {totalVeg}
-                </span>
-                <span className="text-xs font-semibold text-green-800">
-                  Vegetarian items
-                </span>
-              </div>
-            </div>
+            <p className="text-[11px] text-kioskGray font-medium text-center lg:text-left">
+              ✓ Mutually exclusive · No double counting ({totalVegan + totalVeg} total meat-free)
+            </p>
           </div>
         </div>
       </div>
@@ -274,7 +280,11 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
                 title={`Click to autosort dashboard by ${m.label}`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="w-4 h-4 rounded-full shrink-0 shadow-2xs"
+                      style={{ backgroundColor: m.color }}
+                    />
                     <h3 className="text-xl font-bold text-gunmetal tracking-tight group-hover:text-gunmetal-dark">
                       {m.label}
                     </h3>
@@ -287,13 +297,13 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
                   </span>
                 </div>
 
-                {/* Progress Track & Fill */}
+                {/* Progress Track & Fill with matching pie chart color */}
                 <div className="w-full h-3.5 bg-[#EAE7E1] rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-300"
+                    className="h-full rounded-full transition-all duration-300 shadow-2xs"
                     style={{
                       width: `${percent}%`,
-                      backgroundColor: m.key.includes("protein") ? "#85BB2F" : "#C3E48B",
+                      backgroundColor: m.color,
                     }}
                   />
                 </div>

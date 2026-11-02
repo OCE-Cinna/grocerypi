@@ -216,10 +216,13 @@ def get_nutrition_summary(db: Session = Depends(get_db)):
         summary["total_protein_grams"] += p.protein_grams * qty
         summary["total_salt_grams"] += p.salt_grams * qty
 
-        if p.is_vegetarian:
-            total_vegetarian += qty
+        # Mutually exclusive dietary counts to prevent double-counting:
+        # Vegan items are pure plant-based.
+        # Vegetarian items are non-vegan vegetarian (contains dairy/eggs).
         if p.is_vegan:
             total_vegan += qty
+        elif p.is_vegetarian:
+            total_vegetarian += qty
 
         if p.nutriscore and p.nutriscore.upper() in nutriscore_map:
             ns = p.nutriscore.upper()
