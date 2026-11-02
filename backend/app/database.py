@@ -5,7 +5,9 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./grocerypi.db")
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_DB_PATH = os.path.join(BACKEND_DIR, "grocerypi.db")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
 
 # SQLite needs check_same_thread=False for multi-threaded use
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

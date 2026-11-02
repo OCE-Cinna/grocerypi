@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
 import GroceryCard from "../components/GroceryCard";
-import { EcoIcon, SpaIcon } from "../components/MaterialIcons";
 import {
   FigmaSearch,
   FigmaBarcode,
@@ -151,19 +150,7 @@ export default function DashboardPage({
                     : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                {diet === "Vegan" ? (
-                  <span className="inline-flex items-center gap-2">
-                    <EcoIcon className="w-4 h-4 fill-current" />
-                    <span>Vegan</span>
-                  </span>
-                ) : diet === "Vegetarian" ? (
-                  <span className="inline-flex items-center gap-2">
-                    <SpaIcon className="w-4 h-4 fill-current" />
-                    <span>Vegetarian</span>
-                  </span>
-                ) : (
-                  "All Diets"
-                )}
+                {diet === "All" ? "All Diets" : diet}
               </button>
             );
           })}

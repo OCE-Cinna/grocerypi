@@ -94,17 +94,21 @@ export function M3Cart({ className = "w-5 h-5", ...props }) {
   );
 }
 
-// 6. Nutrition (Material 3 pie_chart)
+// 6. Nutrition (Figma Prototype Sliced Pie Chart Icon)
 export function M3Nutrition({ className = "w-5 h-5", ...props }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       className={`shrink-0 ${className}`}
       aria-hidden="true"
       {...props}
     >
-      <path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2 0v8.99L20.89 16c.7-1.19 1.11-2.55 1.11-4 0-5.52-4.48-10-10-10zm0 11.02V22c3.92-.41 7.15-3.13 8.35-6.84L13 13.02z" />
+      <path d="M21.21 15.89C20.574 17.394 19.579 18.72 18.312 19.751C17.045 20.782 15.545 21.487 13.942 21.805C12.34 22.122 10.684 22.042 9.12 21.572C7.556 21.102 6.13 20.255 4.969 19.107C3.807 17.958 2.945 16.543 2.457 14.984C1.968 13.425 1.87 11.77 2.169 10.165C2.468 8.56 3.155 7.051 4.172 5.772C5.189 4.493 6.503 3.483 8 2.83M22 12C22 10.687 21.741 9.386 21.239 8.173C20.736 6.96 20 5.858 19.071 4.929C18.142 4 17.04 3.264 15.827 2.761C14.614 2.259 13.313 2 12 2V12H22Z" />
     </svg>
   );
 }

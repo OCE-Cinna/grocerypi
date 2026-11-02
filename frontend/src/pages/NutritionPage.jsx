@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CheckCircleIcon, EcoIcon, SpaIcon, M3BarChart, FigmaNutrition } from "../components/MaterialIcons";
+import { CheckCircleIcon, M3BarChart, FigmaNutrition } from "../components/MaterialIcons";
 
 export default function NutritionPage({ summary, onSelectNutrientSort }) {
   const [viewMode, setViewMode] = useState("bars"); // "bars" | "pie"
@@ -167,7 +167,7 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
                 : "text-gunmetal hover:bg-gray-100"
             }`}
           >
-            <FigmaNutrition className="w-5 h-5 fill-current" />
+            <FigmaNutrition className="w-5 h-5 stroke-current" />
             <span>Macro Pie Chart</span>
           </button>
         </div>
@@ -231,32 +231,22 @@ export default function NutritionPage({ summary, onSelectNutrientSort }) {
           {/* Right: Vegetarian & Vegan Counters (Mutually exclusive - no double counting) */}
           <div className="lg:border-l lg:border-gray-200 lg:pl-8 flex flex-col gap-3 shrink-0">
             <div className="flex flex-row lg:flex-col gap-3">
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <EcoIcon className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-emerald-950 block leading-tight">
-                    {totalVegan}
-                  </span>
-                  <span className="text-xs font-semibold text-emerald-800">
-                    Vegan (100% plant-based)
-                  </span>
-                </div>
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex flex-col justify-center flex-1 sm:w-64">
+                <span className="text-2xl font-black text-emerald-950 block leading-tight">
+                  {totalVegan}
+                </span>
+                <span className="text-xs font-bold text-emerald-800">
+                  Vegan (100% plant-based)
+                </span>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-green-50 border border-green-200/80 flex items-center gap-3.5 flex-1 sm:w-64">
-                <div className="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <SpaIcon className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-green-950 block leading-tight">
-                    {totalVeg}
-                  </span>
-                  <span className="text-xs font-semibold text-green-800">
-                    Vegetarian (dairy & eggs)
-                  </span>
-                </div>
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-green-50 border border-green-200/80 flex flex-col justify-center flex-1 sm:w-64">
+                <span className="text-2xl font-black text-green-950 block leading-tight">
+                  {totalVeg}
+                </span>
+                <span className="text-xs font-bold text-green-800">
+                  Vegetarian (dairy & eggs)
+                </span>
               </div>
             </div>
 

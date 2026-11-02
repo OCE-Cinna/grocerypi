@@ -73,6 +73,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         self._picam2 = None
         self._lock = threading.Lock()
         self._latest_jpeg: Optional[bytes] = None
+        self._is_decoding: bool = False
 
     @property
     def is_running(self) -> bool:
@@ -195,9 +196,18 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                 start_time = time.time()
                 
                 # Capture frame as numpy array
-                frame = self._picam2.capture_array("main")
+                try:
+                    frame = self._picam2.capture_array("main")
+                except Exception as cap_err:
+                    logger.warning(f"Frame capture error: {cap_err}")
+                    time.sleep(0.05)
+                    continue
 
-                # Store latest JPEG for live preview stream
+                if frame is None or frame.size == 0:
+                    time.sleep(0.02)
+                    continue
+
+                # Store latest JPEG for live preview stream (fast encode)
                 try:
                     ret, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
                     if ret:
@@ -206,17 +216,14 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                 except Exception:
                     pass
                 
-                barcode = self.decode_frame(frame)
-                if barcode:
-                    if not self._should_debounce(barcode):
-                        logger.info(f"Barcode detected: {barcode}")
-                        if self._on_scan_callback:
-                            try:
-                                self._on_scan_callback(barcode)
-                            except Exception as cb_err:
-                                logger.error(f"Error in on_scan callback: {cb_err}")
-                    else:
-                        logger.debug(f"Debounced barcode: {barcode}")
+                # Non-blocking async decode so camera preview refreshes smoothly at full FPS
+                if not self._is_decoding:
+                    self._is_decoding = True
+                    threading.Thread(
+                        target=self._async_decode,
+                        args=(frame.copy(),),
+                        daemon=True
+                    ).start()
 
                 # Rate limiting to target FPS
                 elapsed = time.time() - start_time
@@ -230,6 +237,25 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             self._cleanup_camera()
             self._is_running = False
             logger.info("Picamera2 capture loop stopped.")
+
+    def _async_decode(self, frame: np.ndarray) -> None:
+        """Asynchronously decodes barcodes from a frame copy to keep the capture loop at full frame rate."""
+        try:
+            barcode = self.decode_frame(frame)
+            if barcode:
+                if not self._should_debounce(barcode):
+                    logger.info(f"Barcode detected: {barcode}")
+                    if self._on_scan_callback:
+                        try:
+                            self._on_scan_callback(barcode)
+                        except Exception as cb_err:
+                            logger.error(f"Error in on_scan callback: {cb_err}")
+                else:
+                    logger.debug(f"Debounced barcode: {barcode}")
+        except Exception as e:
+            logger.debug(f"Async barcode decode pass notice: {e}")
+        finally:
+            self._is_decoding = False
 
     def _cleanup_camera(self) -> None:
         """Safely stops and closes the picamera2 instance."""

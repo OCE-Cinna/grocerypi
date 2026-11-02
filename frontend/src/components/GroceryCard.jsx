@@ -1,5 +1,4 @@
 import React from "react";
-import { EcoIcon, SpaIcon } from "./MaterialIcons";
 import { FigmaMinus, FigmaPlus, FigmaEdit, FigmaTrash } from "./FigmaIcons";
 
 export default function GroceryCard({ item, activeSortNutrient, onIncrement, onDecrement, onEdit, onDelete }) {
@@ -83,16 +82,14 @@ export default function GroceryCard({ item, activeSortNutrient, onIncrement, onD
             </span>
           )}
 
-          {/* Diet Badge (Vegan / Vegetarian) */}
+          {/* Diet Badge (Vegan / Vegetarian - text only, no SVG) */}
           {product.is_vegan ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
-              <EcoIcon className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Vegan</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+              Vegan
             </span>
           ) : product.is_vegetarian ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-800 border border-green-300">
-              <SpaIcon className="w-3.5 h-3.5 text-green-700" />
-              <span>Veg</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-50 text-green-800 border border-green-300">
+              Vegetarian
             </span>
           ) : null}
 

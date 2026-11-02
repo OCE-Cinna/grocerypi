@@ -49,7 +49,7 @@ export default function Navbar({ activeTab, onSelectTab, onHome, scannerStatus =
                 : "text-gray-300 hover:text-white"
             }`}
           >
-            <FigmaNutrition className={`w-5 h-5 ${activeTab === "nutrition" ? "fill-gunmetal" : "fill-gray-300"}`} />
+            <FigmaNutrition className={`w-5 h-5 ${activeTab === "nutrition" ? "stroke-gunmetal" : "stroke-gray-300"}`} />
             <span>Nutrition</span>
           </button>
         </nav>

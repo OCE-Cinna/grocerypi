@@ -150,16 +150,29 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
 
               {/* Loading / Error Fallback Placeholder */}
               {(!streamLoaded || streamError) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gunmetal-dark text-parchment p-4 text-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gunmetal-dark text-parchment p-4 text-center z-10 pointer-events-auto">
                   <div className="w-12 h-12 rounded-full border-3 border-limeCream border-t-transparent animate-spin mb-3" />
                   <p className="text-sm font-bold text-limeCream">
                     {streamError ? "Hardware Viewfinder Standby" : "Connecting Camera Module v3..."}
                   </p>
                   <p className="text-xs text-kioskGray-light mt-1 max-w-xs">
                     {streamError
-                      ? "Camera is actively scanning in background · Center barcode in lens field"
+                      ? "Camera is actively scanning in background · Tap below to reconnect preview"
                       : "Continuous autofocus (PDAF) calibrating lens"}
                   </p>
+                  {streamError && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStreamError(false);
+                        setStreamLoaded(false);
+                        setStreamUrl(`/scanner/preview?t=${Date.now()}`);
+                      }}
+                      className="mt-3 px-3.5 py-1.5 rounded-xl bg-limeCream text-gunmetal font-bold text-xs hover:bg-white transition-all cursor-pointer shadow-md"
+                    >
+                      Reconnect Preview
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -167,12 +180,30 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
               <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-3.5">
                 {/* Top Status Badges */}
                 <div className="w-full flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gunmetal-dark/85 backdrop-blur-xs border border-white/10 text-[11px] font-semibold text-parchment shadow-xs">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-limeCream opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-limeCream"></span>
-                    </span>
-                    <span>LIVE SENSOR</span>
+                  <div className="flex items-center gap-2 pointer-events-auto">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gunmetal-dark/85 backdrop-blur-xs border border-white/10 text-xs font-semibold text-parchment shadow-xs">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-limeCream opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-limeCream"></span>
+                      </span>
+                      <span>LIVE SENSOR</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStreamLoaded(false);
+                        setStreamError(false);
+                        setStreamUrl(`/scanner/preview?t=${Date.now()}`);
+                      }}
+                      className="px-2.5 py-1 rounded-full bg-gunmetal-dark/85 hover:bg-black/90 backdrop-blur-xs border border-white/15 text-xs font-medium text-limeCream hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+                      title="Refresh camera stream"
+                    >
+                      <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                      </svg>
+                      <span>Refresh</span>
+                    </button>
                   </div>
 
                   <div className="pointer-events-auto">

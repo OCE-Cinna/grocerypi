@@ -1,8 +1,9 @@
+import asyncio
 import logging
 import os
 import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -177,23 +178,48 @@ def get_scanner_status():
 
 
 @app.get("/scanner/preview", tags=["Hardware Scanner"])
-def get_scanner_preview():
+async def get_scanner_preview(request: Request):
     """MJPEG streaming endpoint for live camera framing & viewfinder preview."""
     scanner = get_barcode_scanner()
 
-    def frame_generator():
+    async def frame_generator():
         while True:
+            if await request.is_disconnected():
+                break
             jpeg = scanner.get_latest_jpeg()
             if jpeg:
                 yield (
                     b"--frame\r\n"
                     b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
                 )
-            time.sleep(0.06)  # ~15-16 FPS preview stream
+            await asyncio.sleep(0.05)  # 20 FPS smooth refresh rate
 
     return StreamingResponse(
         frame_generator(),
-        media_type="multipart/x-mixed-replace; boundary=frame"
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+    )
+
+
+@app.get("/scanner/frame", tags=["Hardware Scanner"])
+def get_scanner_frame():
+    """Returns a single latest snapshot frame (useful for fast polling or frame refreshes)."""
+    scanner = get_barcode_scanner()
+    jpeg = scanner.get_latest_jpeg()
+    if not jpeg:
+        raise HTTPException(status_code=503, detail="Camera frame not ready")
+    return Response(
+        content=jpeg,
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
     )
 
 
