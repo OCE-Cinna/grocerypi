@@ -6,8 +6,8 @@
 
 set -e
 
-# Resolve base repository directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve base repository directory (supports symlinks and relative calls)
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Ensure environment paths

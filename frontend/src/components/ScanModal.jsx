@@ -6,17 +6,38 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
   const [streamError, setStreamError] = useState(false);
   const [streamLoaded, setStreamLoaded] = useState(false);
   const [streamUrl, setStreamUrl] = useState("");
+  const [showPreview, setShowPreview] = useState(() => {
+    try {
+      const saved = localStorage.getItem("grocerypi_camera_preview");
+      return saved !== null ? saved === "true" : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const togglePreview = () => {
+    setShowPreview((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("grocerypi_camera_preview", String(next));
+      } catch (err) {
+        console.warn("Could not save camera preview preference", err);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && showPreview) {
       // Connect fresh MJPEG stream with timestamp to prevent stale browser caching
       setStreamUrl(`/scanner/preview?t=${Date.now()}`);
       setStreamError(false);
       setStreamLoaded(false);
     } else {
       setStreamUrl("");
+      setStreamLoaded(false);
     }
-  }, [isOpen]);
+  }, [isOpen, showPreview]);
 
   if (!isOpen) return null;
 
@@ -63,89 +84,187 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
 
         {/* Scrollable Body */}
         <div className="overflow-y-auto pr-1 flex-1 space-y-4">
-          {/* Live Camera Viewfinder */}
-          <div className="relative w-full h-56 sm:h-64 rounded-2xl overflow-hidden bg-gunmetal-dark border-2 border-gunmetal shadow-inner flex items-center justify-center group">
-            {/* Live MJPEG Feed */}
-            {streamUrl && !streamError && (
-              <img
-                src={streamUrl}
-                alt="Raspberry Pi Camera Module v3 live preview"
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
-                  streamLoaded ? "opacity-100" : "opacity-0"
+          {/* Viewfinder Header & Toggle */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-gunmetal">
+                Camera Preview
+              </span>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${
+                  showPreview
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-gray-100 text-gray-600"
                 }`}
-                onLoad={() => setStreamLoaded(true)}
-                onError={() => setStreamError(true)}
-              />
-            )}
+              >
+                {showPreview ? "Preview Active" : "Preview Off"}
+              </span>
+            </div>
 
-            {/* Loading / Error Fallback Placeholder */}
-            {(!streamLoaded || streamError) && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gunmetal-dark text-parchment p-4 text-center">
-                <div className="w-12 h-12 rounded-full border-3 border-limeCream border-t-transparent animate-spin mb-3" />
-                <p className="text-sm font-bold text-limeCream">
-                  {streamError ? "Hardware Viewfinder Standby" : "Connecting Camera Module v3..."}
-                </p>
-                <p className="text-xs text-kioskGray-light mt-1 max-w-xs">
-                  {streamError
-                    ? "Camera is actively scanning in background · Center barcode in lens field"
-                    : "Continuous autofocus (PDAF) calibrating lens"}
-                </p>
+            <button
+              type="button"
+              onClick={togglePreview}
+              role="switch"
+              aria-checked={showPreview}
+              className="flex items-center gap-2 text-xs font-semibold text-gunmetal hover:text-black cursor-pointer select-none transition-colors"
+              title={showPreview ? "Turn off camera preview" : "Turn on camera preview"}
+            >
+              <span className="text-[11px] text-kioskGray font-medium">
+                {showPreview ? "Turn Off" : "Turn On"}
+              </span>
+              <div
+                className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${
+                  showPreview ? "bg-gunmetal" : "bg-gray-300"
+                }`}
+              >
+                <div
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                    showPreview ? "translate-x-4 bg-limeCream" : "translate-x-0"
+                  }`}
+                />
               </div>
-            )}
+            </button>
+          </div>
 
-            {/* Viewfinder Overlays & Reticle (Always visible on top of stream) */}
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-3.5">
-              {/* Top Status Badges */}
-              <div className="w-full flex items-center justify-between">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gunmetal-dark/85 backdrop-blur-xs border border-white/10 text-[11px] font-semibold text-parchment shadow-xs">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-limeCream opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-limeCream"></span>
-                  </span>
-                  <span>LIVE SENSOR</span>
+          {/* Camera Viewfinder or Standby Card */}
+          {showPreview ? (
+            <div className="relative w-full h-56 sm:h-64 rounded-2xl overflow-hidden bg-gunmetal-dark border-2 border-gunmetal shadow-inner flex items-center justify-center group">
+              {/* Live MJPEG Feed */}
+              {streamUrl && !streamError && (
+                <img
+                  src={streamUrl}
+                  alt="Raspberry Pi Camera Module v3 live preview"
+                  className={`w-full h-full object-cover transition-opacity duration-300 ${
+                    streamLoaded ? "opacity-100" : "opacity-0"
+                  }`}
+                  onLoad={() => setStreamLoaded(true)}
+                  onError={() => setStreamError(true)}
+                />
+              )}
+
+              {/* Loading / Error Fallback Placeholder */}
+              {(!streamLoaded || streamError) && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gunmetal-dark text-parchment p-4 text-center">
+                  <div className="w-12 h-12 rounded-full border-3 border-limeCream border-t-transparent animate-spin mb-3" />
+                  <p className="text-sm font-bold text-limeCream">
+                    {streamError ? "Hardware Viewfinder Standby" : "Connecting Camera Module v3..."}
+                  </p>
+                  <p className="text-xs text-kioskGray-light mt-1 max-w-xs">
+                    {streamError
+                      ? "Camera is actively scanning in background · Center barcode in lens field"
+                      : "Continuous autofocus (PDAF) calibrating lens"}
+                  </p>
+                </div>
+              )}
+
+              {/* Viewfinder Overlays & Reticle (Always visible on top of stream) */}
+              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-3.5">
+                {/* Top Status Badges */}
+                <div className="w-full flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gunmetal-dark/85 backdrop-blur-xs border border-white/10 text-[11px] font-semibold text-parchment shadow-xs">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-limeCream opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-limeCream"></span>
+                    </span>
+                    <span>LIVE SENSOR</span>
+                  </div>
+
+                  <div className="pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={togglePreview}
+                      className="px-2.5 py-1 rounded-full bg-gunmetal-dark/85 hover:bg-black/90 backdrop-blur-xs border border-white/15 text-[11px] font-medium text-parchment hover:text-white shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5 fill-none stroke-current"
+                        viewBox="0 0 24 24"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                      <span>Turn Off</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="px-2.5 py-1 rounded-full bg-gunmetal-dark/85 backdrop-blur-xs border border-white/10 text-[11px] font-medium text-parchment shadow-xs">
-                  PDAF Autofocus Active
+                {/* Central Barcode Targeting Box / Reticle */}
+                <div className="relative w-56 h-32 sm:w-64 sm:h-36 flex items-center justify-center">
+                  {/* 4 Corner Targeting Brackets */}
+                  <span className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-limeCream rounded-tl-md shadow-xs"></span>
+                  <span className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-limeCream rounded-tr-md shadow-xs"></span>
+                  <span className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-limeCream rounded-bl-md shadow-xs"></span>
+                  <span className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-limeCream rounded-br-md shadow-xs"></span>
+
+                  {/* Subtle Center Crosshair Guide */}
+                  <div className="w-8 h-8 relative flex items-center justify-center opacity-40">
+                    <span className="w-4 h-0.5 bg-white rounded-full"></span>
+                    <span className="w-0.5 h-4 bg-white rounded-full absolute"></span>
+                  </div>
+
+                  {/* Animated Horizontal Laser Scan Beam */}
+                  <div className="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-limeCream to-transparent animate-pulse shadow-[0_0_8px_rgba(195,228,139,0.9)]"></div>
+                </div>
+
+                {/* Distance Guidance Pill */}
+                <div className="px-3.5 py-1.5 rounded-full bg-gunmetal-dark/90 backdrop-blur-xs border border-limeCream/40 text-xs font-semibold text-limeCream shadow-lg flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4 fill-none stroke-current"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                  </svg>
+                  <span>Optimal Distance: 10 – 25 cm (4 – 10 in)</span>
                 </div>
               </div>
-
-              {/* Central Barcode Targeting Box / Reticle */}
-              <div className="relative w-56 h-32 sm:w-64 sm:h-36 flex items-center justify-center">
-                {/* 4 Corner Targeting Brackets */}
-                <span className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-limeCream rounded-tl-md shadow-xs"></span>
-                <span className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-limeCream rounded-tr-md shadow-xs"></span>
-                <span className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-limeCream rounded-bl-md shadow-xs"></span>
-                <span className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-limeCream rounded-br-md shadow-xs"></span>
-
-                {/* Subtle Center Crosshair Guide */}
-                <div className="w-8 h-8 relative flex items-center justify-center opacity-40">
-                  <span className="w-4 h-0.5 bg-white rounded-full"></span>
-                  <span className="w-0.5 h-4 bg-white rounded-full absolute"></span>
-                </div>
-
-                {/* Animated Horizontal Laser Scan Beam */}
-                <div className="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-limeCream to-transparent animate-pulse shadow-[0_0_8px_rgba(195,228,139,0.9)]"></div>
-              </div>
-
-              {/* Distance Guidance Pill */}
-              <div className="px-3.5 py-1.5 rounded-full bg-gunmetal-dark/90 backdrop-blur-xs border border-limeCream/40 text-xs font-semibold text-limeCream shadow-lg flex items-center gap-2">
+            </div>
+          ) : (
+            /* Standby Card when Preview is Turned Off */
+            <div className="w-full rounded-2xl bg-gunmetal-dark border-2 border-gunmetal/80 p-5 flex flex-col items-center justify-center text-center text-parchment shadow-inner min-h-[170px]">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-2.5 text-limeCream">
                 <svg
-                  className="w-4 h-4 fill-none stroke-current"
+                  className="w-6 h-6 fill-none stroke-current"
                   viewBox="0 0 24 24"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
                 </svg>
-                <span>Optimal Distance: 10 – 25 cm (4 – 10 in)</span>
               </div>
+              <p className="text-sm font-bold text-white">Camera Preview is Turned Off</p>
+              <p className="text-xs text-kioskGray-light mt-1 max-w-xs leading-relaxed">
+                Hardware barcode scanning remains active in the background. Hold your product in front of the lens to scan.
+              </p>
+              <button
+                type="button"
+                onClick={togglePreview}
+                className="mt-3.5 px-4 py-2 rounded-xl bg-limeCream text-gunmetal hover:bg-white font-bold text-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95 shadow-md"
+              >
+                <svg
+                  className="w-4 h-4 fill-none stroke-current"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Turn On Preview</span>
+              </button>
             </div>
-          </div>
+          )}
 
           {/* Quick Framing Helper Tips */}
           <div className="grid grid-cols-3 gap-2 text-center text-[11px] font-medium text-gunmetal bg-parchment p-2.5 rounded-xl border border-parchment-border">
