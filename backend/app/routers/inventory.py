@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -16,6 +17,9 @@ from app.schemas import (
     CartSuggestionsResponse,
 )
 from app.services.prediction import get_cart_replenishment_suggestions
+from app.services.ah_client import resolve_barcode_to_catalog_item
+
+logger = logging.getLogger("grocerypi.inventory")
 
 router = APIRouter(prefix="/inventory", tags=["Inventory & Barcode Scanner"])
 
@@ -33,11 +37,17 @@ def ingest_barcode_scan(payload: BarcodeScanRequest, db: Session = Depends(get_d
     barcode = payload.barcode.strip()
     now_utc = datetime.now(timezone.utc)
 
-    # 1. Look up item in catalog
+    # 1. Look up item in catalog, or automatically resolve from Albert Heijn API
     product = db.query(ProductCatalog).filter(ProductCatalog.barcode == barcode).first()
 
     if not product:
-        # Audit unrecognized scan
+        try:
+            product = resolve_barcode_to_catalog_item(barcode, db)
+        except Exception as resolve_err:
+            logger.warning(f"Error resolving barcode '{barcode}' from AH API: {resolve_err}")
+
+    if not product:
+        # Audit unrecognized scan if product is not found in catalog or AH API
         scan_log = ScanLog(
             raw_barcode=barcode,
             product_id=None,
@@ -50,7 +60,7 @@ def ingest_barcode_scan(payload: BarcodeScanRequest, db: Session = Depends(get_d
 
         return BarcodeScanResponse(
             scan_status=ScanStatus.UNKNOWN_BARCODE,
-            message=f"Barcode '{barcode}' not found in catalog. Please register product details.",
+            message=f"Barcode '{barcode}' not found in catalog or Albert Heijn API.",
             scanned_at=now_utc,
             barcode=barcode,
             product=None,

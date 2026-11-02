@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import Base, engine, SessionLocal, get_db
 from app.routers import auth, lists, items, inventory, products
 from app.services.scanner import get_barcode_scanner
+from app.services.ah_client import resolve_barcode_to_catalog_item
 from app.models import ProductCatalog, InventoryItem, ScanLog, InventoryStatus, ScanStatus
 from datetime import datetime, timezone
 
@@ -37,7 +38,14 @@ def handle_hardware_scan(barcode: str):
     db: Session = SessionLocal()
     try:
         now_utc = datetime.now(timezone.utc)
-        product = db.query(ProductCatalog).filter(ProductCatalog.barcode == barcode.strip()).first()
+        clean_code = barcode.strip()
+        product = db.query(ProductCatalog).filter(ProductCatalog.barcode == clean_code).first()
+        if not product:
+            try:
+                product = resolve_barcode_to_catalog_item(clean_code, db)
+            except Exception as res_err:
+                logger.error(f"[HARDWARE SCANNER] Failed to resolve barcode '{clean_code}' from AH API: {res_err}")
+
         if product:
             inv = db.query(InventoryItem).filter(InventoryItem.product_id == product.id).first()
             if inv:

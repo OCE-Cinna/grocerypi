@@ -209,3 +209,19 @@ def test_cart_replenishment_suggestions():
     assert "subtext" in first_item
 
 
+def test_ah_api_product_auto_resolution():
+    """
+    Tests scanning an uncatalogued GTIN barcode (8710466269522):
+    Pulls metadata directly from Albert Heijn API, saves to ProductCatalog,
+    and increments inventory stock.
+    """
+    res = client.post("/inventory/scan", json={"barcode": "8710466269522"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["scan_status"] == "SUCCESS"
+    assert "Koopmans" in data["product"]["name"]
+    assert data["product"]["nutriscore"] == "E"
+    assert data["inventory_item"]["quantity"] >= 1
+
+
+
