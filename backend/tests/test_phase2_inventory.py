@@ -185,3 +185,27 @@ def test_mock_scanner_service():
     scanner.stop()
     assert scanner.is_running is False
 
+
+def test_cart_replenishment_suggestions():
+    """Tests the smart supermarket queue suggestions and prediction intervals."""
+    res = client.get("/inventory/cart/suggestions")
+    assert res.status_code == 200
+    data = res.json()
+    assert "queues" in data
+    assert len(data["queues"]) >= 2
+    
+    queue_ids = [q["id"] for q in data["queues"]]
+    assert "AH" in queue_ids
+    assert "Jumbo" in queue_ids
+    
+    # Check that item fields are populated
+    ah_queue = next(q for q in data["queues"] if q["id"] == "AH")
+    assert ah_queue["title"].startswith("AH ·")
+    assert len(ah_queue["items"]) > 0
+    first_item = ah_queue["items"][0]
+    assert "name" in first_item
+    assert "quantity_text" in first_item
+    assert "effective_interval_days" in first_item
+    assert "subtext" in first_item
+
+

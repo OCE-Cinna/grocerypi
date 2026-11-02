@@ -92,6 +92,8 @@ class ProductCatalog(Base):
     brand = Column(String(100), nullable=True)
     category = Column(SAEnum(ItemCategory), default=ItemCategory.FOOD, nullable=False)
     preferred_store = Column(SAEnum(PreferredStore), default=PreferredStore.AH, nullable=False)
+    is_dual_store = Column(Boolean, default=False, nullable=False)
+    webshop_id = Column(Integer, nullable=True, index=True)
     package_size = Column(String(50), nullable=True)
 
     # Nutritional metadata per 100g / serving (Strict Order: Energy kJ/kcal, Fat, SatFat, Carbs, Sugar, Fiber, Protein, Salt)
@@ -128,6 +130,8 @@ class InventoryItem(Base):
     last_restocked_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     predicted_depletion_at = Column(DateTime(timezone=True), nullable=True)
     restock_interval_days = Column(Float, default=7.0, nullable=False)  # rolling average days between restocks
+    manual_interval_override = Column(Float, nullable=True)  # user-configured override for dual-store/Jumbo purchases
+    is_dual_store = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
@@ -151,3 +155,36 @@ class ScanLog(Base):
     scanned_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     product = relationship("ProductCatalog", back_populates="scan_logs")
+
+
+# ─── Receipt & Purchase Order History ────────────────────────────────────────
+
+class PurchaseOrder(Base):
+    """Historical supermarket invoices (AH, Jumbo, etc.) for empirical replenishment modeling."""
+    __tablename__ = "purchase_orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_number = Column(String(64), unique=True, index=True, nullable=False)
+    order_date = Column(DateTime(timezone=True), nullable=False)
+    source = Column(String(32), default="AH", nullable=False)
+    total_amount = Column(Float, default=0.0, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    items = relationship("PurchaseOrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+class PurchaseOrderItem(Base):
+    """Individual line items parsed from historical invoices."""
+    __tablename__ = "purchase_order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("product_catalog.id"), nullable=True)
+    description = Column(String(200), nullable=False)
+    quantity = Column(Integer, default=1, nullable=False)
+    unit_price = Column(Float, default=0.0, nullable=False)
+    total_price = Column(Float, default=0.0, nullable=False)
+
+    order = relationship("PurchaseOrder", back_populates="items")
+    product = relationship("ProductCatalog")
+

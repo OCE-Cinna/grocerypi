@@ -13,7 +13,9 @@ from app.schemas import (
     BarcodeScanResponse,
     NutritionalSummaryOut,
     ScanLogOut,
+    CartSuggestionsResponse,
 )
+from app.services.prediction import get_cart_replenishment_suggestions
 
 router = APIRouter(prefix="/inventory", tags=["Inventory & Barcode Scanner"])
 
@@ -190,6 +192,28 @@ def get_nutrition_summary(db: Session = Depends(get_db)):
             summary[k] = round(summary[k], 2)
 
     return summary
+
+
+# ─── Smart Replenishment & Cart Suggestions ───────────────────────────────────
+
+@router.get("/cart/suggestions", response_model=CartSuggestionsResponse)
+def get_cart_suggestions(db: Session = Depends(get_db)):
+    """
+    Computes suggested supermarket shopping replenishment queues (AH, Jumbo, Lidl)
+    based on empirical restock intervals and the 'Items IN' prediction calculation.
+    """
+    return get_cart_replenishment_suggestions(db)
+
+
+@router.post("/sync/ah", status_code=status.HTTP_200_OK)
+def trigger_ah_invoice_sync():
+    """
+    Triggers re-parsing and seeding of Albert Heijn invoices from /home/grocerypi/Downloads/ah/.
+    """
+    from app.db.parse_ah_invoices import seed_database
+    seed_database()
+    return {"status": "success", "message": "AH invoice sync and prediction seeding completed successfully."}
+
 
 
 # ─── Item Quantity & Status Adjustments ──────────────────────────────────────

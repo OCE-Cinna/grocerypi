@@ -110,6 +110,8 @@ class ProductCatalogBase(BaseModel):
     brand: Optional[str] = Field(None, max_length=100)
     category: ItemCategory = ItemCategory.FOOD
     preferred_store: PreferredStore = PreferredStore.AH
+    is_dual_store: bool = False
+    webshop_id: Optional[int] = None
     package_size: Optional[str] = Field(None, max_length=50)
 
     # 9 nutritional fields in order
@@ -167,6 +169,8 @@ class InventoryItemCreate(InventoryItemBase):
 class InventoryItemUpdate(BaseModel):
     quantity: Optional[int] = Field(None, ge=0)
     status: Optional[InventoryStatus] = None
+    manual_interval_override: Optional[float] = Field(None, ge=0.5)
+    is_dual_store: Optional[bool] = None
 
 
 class InventoryItemOut(InventoryItemBase):
@@ -175,6 +179,8 @@ class InventoryItemOut(InventoryItemBase):
     last_restocked_at: datetime
     predicted_depletion_at: Optional[datetime] = None
     restock_interval_days: float
+    manual_interval_override: Optional[float] = None
+    is_dual_store: bool = False
     created_at: datetime
     updated_at: Optional[datetime] = None
     product: ProductCatalogOut
@@ -222,3 +228,51 @@ class NutritionalSummaryOut(BaseModel):
     total_fiber_grams: float
     total_protein_grams: float
     total_salt_grams: float
+
+
+# ─── Cart & Smart Replenishment Schemas ────────────────────────────────────────
+
+class CartSuggestionItem(BaseModel):
+    id: int
+    store: str
+    name: str
+    subtext: str
+    quantity_text: str
+    is_dual_store: bool = False
+    effective_interval_days: float
+    days_since_restock: float
+    current_quantity: int
+    urgency: str  # "high", "medium", "normal"
+
+
+class StoreQueue(BaseModel):
+    id: str
+    title: str
+    subtitle: str
+    items: list[CartSuggestionItem]
+
+
+class CartSuggestionsResponse(BaseModel):
+    queues: list[StoreQueue]
+
+
+class PurchaseOrderItemOut(BaseModel):
+    id: int
+    description: str
+    quantity: int
+    unit_price: float
+    total_price: float
+
+    model_config = {"from_attributes": True}
+
+
+class PurchaseOrderOut(BaseModel):
+    id: int
+    order_number: str
+    order_date: datetime
+    source: str
+    total_amount: float
+    items: list[PurchaseOrderItemOut]
+
+    model_config = {"from_attributes": True}
+
