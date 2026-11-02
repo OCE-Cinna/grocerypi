@@ -16,7 +16,6 @@ export DISPLAY="${DISPLAY:-:0}"
 export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 export ENABLE_HARDWARE_SCANNER=true
 export CAMERA_VFLIP=true
-export CAMERA_VFLIP=true
 
 echo "=========================================="
 echo " Starting GroceryPi Kiosk Environment..."
