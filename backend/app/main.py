@@ -12,7 +12,15 @@ from app.database import Base, engine, SessionLocal, get_db
 from app.routers import auth, lists, items, inventory, products
 from app.services.scanner import get_barcode_scanner
 from app.services.ah_client import resolve_barcode_to_catalog_item
-from app.models import ProductCatalog, InventoryItem, ScanLog, InventoryStatus, ScanStatus
+from app.models import (
+    ProductCatalog,
+    InventoryItem,
+    ScanLog,
+    InventoryStatus,
+    ScanStatus,
+    ItemCategory,
+    PreferredStore,
+)
 from datetime import datetime, timezone
 
 logging.basicConfig(level=logging.INFO)
@@ -47,79 +55,76 @@ def handle_hardware_scan(barcode: str):
             except Exception as res_err:
                 logger.error(f"[HARDWARE SCANNER] Failed to resolve barcode '{clean_code}' from AH API: {res_err}")
 
-        if product:
-            inv = db.query(InventoryItem).filter(InventoryItem.product_id == product.id).first()
-            if inv:
-                inv.quantity += 1
-                inv.last_restocked_at = now_utc
-                inv.status = InventoryStatus.IN_STOCK
-            else:
-                inv = InventoryItem(
-                    product_id=product.id,
-                    quantity=1,
-                    status=InventoryStatus.IN_STOCK,
-                    last_restocked_at=now_utc,
-                )
-                db.add(inv)
-
-            log_entry = ScanLog(
-                raw_barcode=barcode,
-                product_id=product.id,
-                status=ScanStatus.SUCCESS,
-                device_info="Raspberry Pi Camera v3 (Hardware Loop)",
-                scanned_at=now_utc,
+        # If product was not in local catalog and not found on AH API, auto-create a fallback entry
+        # so any physically scanned item is guaranteed to be cataloged and added to the dashboard.
+        if not product:
+            logger.info(f"[HARDWARE SCANNER] Creating fallback catalog entry for barcode '{clean_code}'")
+            product = ProductCatalog(
+                barcode=clean_code,
+                name=f"Scanned Item ({clean_code})",
+                brand="Generic",
+                category=ItemCategory.FOOD,
+                preferred_store=PreferredStore.OTHER,
+                package_size="1 unit",
+                is_dual_store=False,
+                is_vegetarian=False,
+                is_vegan=False,
             )
-            db.add(log_entry)
+            db.add(product)
             db.commit()
-            db.refresh(inv)
-            logger.info(f"[HARDWARE SCANNER] Added '{product.name}' to inventory (+1). Total: {inv.quantity}")
+            db.refresh(product)
 
-            _latest_scan_event = {
-                "scan_id": int(now_utc.timestamp() * 1000),
-                "scan_status": "SUCCESS",
-                "barcode": barcode,
-                "device_info": "Raspberry Pi Camera Module v3 (Optical Loop)",
-                "product": {
-                    "id": product.id,
-                    "barcode": product.barcode,
-                    "name": product.name,
-                    "brand": product.brand,
-                    "package_size": product.package_size,
-                    "category": product.category.value if hasattr(product.category, "value") else str(product.category),
-                    "nutriscore": product.nutriscore,
-                    "is_vegan": product.is_vegan,
-                    "is_vegetarian": product.is_vegetarian,
-                },
-                "inventory_item": {
-                    "id": inv.id,
-                    "product_id": inv.product_id,
-                    "quantity": inv.quantity,
-                    "status": inv.status.value if hasattr(inv.status, "value") else str(inv.status),
-                },
-                "timestamp": now_utc.isoformat(),
-                "message": f"Added '{product.name}' (+1)",
-            }
+        inv = db.query(InventoryItem).filter(InventoryItem.product_id == product.id).first()
+        if inv:
+            inv.quantity += 1
+            inv.last_restocked_at = now_utc
+            inv.status = InventoryStatus.IN_STOCK
         else:
-            log_entry = ScanLog(
-                raw_barcode=barcode,
-                product_id=None,
-                status=ScanStatus.UNKNOWN_BARCODE,
-                device_info="Raspberry Pi Camera v3 (Hardware Loop)",
-                scanned_at=now_utc,
+            inv = InventoryItem(
+                product_id=product.id,
+                quantity=1,
+                status=InventoryStatus.IN_STOCK,
+                last_restocked_at=now_utc,
             )
-            db.add(log_entry)
-            db.commit()
-            logger.warning(f"[HARDWARE SCANNER] Unknown barcode: '{barcode}'")
+            db.add(inv)
 
-            _latest_scan_event = {
-                "scan_id": int(now_utc.timestamp() * 1000),
-                "scan_status": "UNKNOWN_BARCODE",
-                "barcode": barcode,
-                "product": None,
-                "inventory_item": None,
-                "timestamp": now_utc.isoformat(),
-                "message": f"Barcode '{barcode}' not found in catalog.",
-            }
+        log_entry = ScanLog(
+            raw_barcode=barcode,
+            product_id=product.id,
+            status=ScanStatus.SUCCESS,
+            device_info="Raspberry Pi Camera v3 (Hardware Loop)",
+            scanned_at=now_utc,
+        )
+        db.add(log_entry)
+        db.commit()
+        db.refresh(inv)
+        logger.info(f"[HARDWARE SCANNER] Added '{product.name}' to inventory (+1). Total: {inv.quantity}")
+
+        _latest_scan_event = {
+            "scan_id": int(now_utc.timestamp() * 1000),
+            "scan_status": "SUCCESS",
+            "barcode": barcode,
+            "device_info": "Raspberry Pi Camera Module v3 (Optical Loop)",
+            "product": {
+                "id": product.id,
+                "barcode": product.barcode,
+                "name": product.name,
+                "brand": product.brand,
+                "package_size": product.package_size,
+                "category": product.category.value if hasattr(product.category, "value") else str(product.category),
+                "nutriscore": product.nutriscore,
+                "is_vegan": product.is_vegan,
+                "is_vegetarian": product.is_vegetarian,
+            },
+            "inventory_item": {
+                "id": inv.id,
+                "product_id": inv.product_id,
+                "quantity": inv.quantity,
+                "status": inv.status.value if hasattr(inv.status, "value") else str(inv.status),
+            },
+            "timestamp": now_utc.isoformat(),
+            "message": f"Added '{product.name}' (+1)",
+        }
     except Exception as e:
         db.rollback()
         logger.error(f"[HARDWARE SCANNER] Error handling barcode {barcode}: {e}", exc_info=True)

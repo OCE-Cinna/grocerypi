@@ -256,13 +256,22 @@ export default function ScanModal({ isOpen, onClose, onScanBarcode, sampleProduc
             </div>
           ) : (
             /* Standby Card when Preview is Turned Off */
-            <div className="w-full rounded-2xl bg-gunmetal-dark border-2 border-gunmetal/80 p-5 flex flex-col items-center justify-center text-center text-parchment shadow-inner min-h-[170px]">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-2.5 text-limeCream">
+            <div className="w-full rounded-2xl bg-gunmetal-dark border-2 border-gunmetal/80 p-5 flex flex-col items-center justify-center text-center text-parchment shadow-inner min-h-[190px]">
+              {/* Active Scanner Status Beacon */}
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold mb-3">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                </span>
+                <span>Optical Scanner Active · Ready to Scan</span>
+              </div>
+
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-2 text-limeCream">
                 <M3VideocamOff className="w-6 h-6 fill-current" />
               </div>
               <p className="text-base font-bold text-white">Camera Preview is Turned Off</p>
-              <p className="text-sm text-kioskGray-light mt-1 max-w-xs leading-relaxed">
-                Hardware barcode scanning remains active in the background. Hold your product in front of the lens to scan.
+              <p className="text-sm text-kioskGray-light mt-1 max-w-sm leading-relaxed">
+                Hardware barcode scanning continues running in the background. Hold your product in front of the lens to automatically add it to your dashboard.
               </p>
               <button
                 type="button"

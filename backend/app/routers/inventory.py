@@ -47,25 +47,22 @@ def ingest_barcode_scan(payload: BarcodeScanRequest, db: Session = Depends(get_d
             logger.warning(f"Error resolving barcode '{barcode}' from AH API: {resolve_err}")
 
     if not product:
-        # Audit unrecognized scan if product is not found in catalog or AH API
-        scan_log = ScanLog(
-            raw_barcode=barcode,
-            product_id=None,
-            status=ScanStatus.UNKNOWN_BARCODE,
-            device_info=payload.device_info or "Unknown",
-            scanned_at=now_utc,
-        )
-        db.add(scan_log)
-        db.commit()
-
-        return BarcodeScanResponse(
-            scan_status=ScanStatus.UNKNOWN_BARCODE,
-            message=f"Barcode '{barcode}' not found in catalog or Albert Heijn API.",
-            scanned_at=now_utc,
+        # Fallback for barcodes not in local catalog and not recognized by AH API
+        logger.info(f"Creating fallback catalog entry for manual/ingested barcode '{barcode}'")
+        product = ProductCatalog(
             barcode=barcode,
-            product=None,
-            inventory_item=None,
+            name=f"Scanned Item ({barcode})",
+            brand="Generic",
+            category=ItemCategory.FOOD,
+            preferred_store=PreferredStore.OTHER,
+            package_size="1 unit",
+            is_dual_store=False,
+            is_vegetarian=False,
+            is_vegan=False,
         )
+        db.add(product)
+        db.commit()
+        db.refresh(product)
 
     # 2. Existing product recognized: Upsert inventory
     inv_item = db.query(InventoryItem).filter(InventoryItem.product_id == product.id).first()
