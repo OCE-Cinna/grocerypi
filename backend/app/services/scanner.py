@@ -56,13 +56,14 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         self,
         resolution: Tuple[int, int] = (1280, 720),
         debounce_seconds: float = 2.5,
-        fps: int = 15,
+        fps: Optional[int] = None,
         vflip: Optional[bool] = None,
         hflip: Optional[bool] = None,
     ):
         self.resolution = resolution
         self.debounce_seconds = debounce_seconds
-        self.fps = fps
+        # Defaults to 1 FPS for ultra-efficient CPU and battery/thermal performance on Raspberry Pi
+        self.fps = fps if fps is not None else int(os.getenv("CAMERA_FPS", "1"))
         self.vflip = vflip if vflip is not None else os.getenv("CAMERA_VFLIP", "true").lower() in ("true", "1", "yes")
         self.hflip = hflip if hflip is not None else os.getenv("CAMERA_HFLIP", "false").lower() in ("true", "1", "yes")
         self._is_running = False
@@ -189,8 +190,8 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             except Exception as af_err:
                 logger.warning(f"Continuous autofocus configuration notice: {af_err}")
 
-            logger.info("Picamera2 capture loop started successfully.")
-            interval = 1.0 / self.fps
+            logger.info(f"Picamera2 capture loop started successfully at {self.fps} FPS.")
+            interval = 1.0 / max(1, self.fps)
 
             while self._is_running:
                 start_time = time.time()
@@ -200,23 +201,24 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                     frame = self._picam2.capture_array("main")
                 except Exception as cap_err:
                     logger.warning(f"Frame capture error: {cap_err}")
-                    time.sleep(0.05)
+                    time.sleep(0.1)
                     continue
 
                 if frame is None or frame.size == 0:
-                    time.sleep(0.02)
+                    time.sleep(0.05)
                     continue
 
-                # Store latest JPEG for live preview stream (fast encode)
+                # Store latest JPEG for live preview stream (downscaled for fast encode and minimal CPU)
                 try:
-                    ret, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
+                    small_frame = cv2.resize(frame, (640, 360), interpolation=cv2.INTER_LINEAR)
+                    ret, buf = cv2.imencode(".jpg", small_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
                     if ret:
                         with self._lock:
                             self._latest_jpeg = buf.tobytes()
                 except Exception:
                     pass
                 
-                # Non-blocking async decode so camera preview refreshes smoothly at full FPS
+                # Non-blocking async decode so camera preview refreshes smoothly
                 if not self._is_decoding:
                     self._is_decoding = True
                     threading.Thread(
@@ -225,7 +227,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                         daemon=True
                     ).start()
 
-                # Rate limiting to target FPS
+                # Rate limiting to target FPS (e.g. 1 FPS)
                 elapsed = time.time() - start_time
                 sleep_time = interval - elapsed
                 if sleep_time > 0:

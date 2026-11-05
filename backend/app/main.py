@@ -197,7 +197,9 @@ async def get_scanner_preview(request: Request):
                     b"--frame\r\n"
                     b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
                 )
-            await asyncio.sleep(0.05)  # 20 FPS smooth refresh rate
+            # Match scanner frame rate to avoid duplicate transmissions
+            stream_interval = 1.0 / max(1, getattr(scanner, "fps", 1))
+            await asyncio.sleep(stream_interval)
 
     return StreamingResponse(
         frame_generator(),

@@ -15,6 +15,7 @@ def list_products(
     q: Optional[str] = Query(None, description="Search by name, brand, or barcode"),
     category: Optional[ItemCategory] = None,
     preferred_store: Optional[PreferredStore] = None,
+    limit: Optional[int] = Query(None, description="Max products to return"),
     db: Session = Depends(get_db),
 ):
     """Lists or searches products in the master catalog."""
@@ -32,6 +33,8 @@ def list_products(
         query = query.filter(ProductCatalog.category == category)
     if preferred_store:
         query = query.filter(ProductCatalog.preferred_store == preferred_store)
+    if limit:
+        query = query.limit(limit)
 
     return query.all()
 

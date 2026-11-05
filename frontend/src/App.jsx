@@ -39,7 +39,7 @@ export default function App() {
   const fetchAuxData = useCallback(async () => {
     try {
       const [prodRes, nutRes, scanRes] = await Promise.allSettled([
-        api.get("/products"),
+        api.get("/products?limit=25"),
         api.get("/inventory/nutrition/summary"),
         api.get("/scanner/status"),
       ]);
@@ -89,7 +89,7 @@ export default function App() {
       } catch (err) {
         // Quietly ignore polling blips
       }
-    }, 400);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [fetchInventory, fetchAuxData, activeSortNutrient]);

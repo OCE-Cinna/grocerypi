@@ -186,7 +186,13 @@ def get_nutrition_summary(db: Session = Depends(get_db)):
     Calculates aggregated macros, energy, average Nutri-Score, and vegetarian/vegan counts
     across all currently stocked physical items for the Kiosk Nutritional Insights View.
     """
-    items = db.query(InventoryItem).join(ProductCatalog).filter(InventoryItem.quantity > 0).all()
+    items = (
+        db.query(InventoryItem)
+        .join(ProductCatalog)
+        .options(joinedload(InventoryItem.product))
+        .filter(InventoryItem.quantity > 0)
+        .all()
+    )
 
     summary = {
         "total_items_counted": 0,

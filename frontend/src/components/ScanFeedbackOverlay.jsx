@@ -1,7 +1,27 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FigmaCheckmark, FigmaUndo } from "./FigmaIcons";
 
 export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
+  const [secondsRemaining, setSecondsRemaining] = useState(5);
+
+  useEffect(() => {
+    if (!scanEvent) return;
+    setSecondsRemaining(5);
+
+    const interval = setInterval(() => {
+      setSecondsRemaining((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    const timer = setTimeout(() => {
+      if (onClose) onClose();
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [scanEvent, onClose]);
+
   if (!scanEvent) return null;
 
   const product = scanEvent.product || {};
@@ -53,8 +73,16 @@ export default function ScanFeedbackOverlay({ scanEvent, onUndo, onClose }) {
           </button>
         </div>
 
+        {/* Auto-Dismiss 5-Second Progress Bar */}
+        <div className="w-full bg-gray-100 rounded-full h-1.5 mt-6 overflow-hidden">
+          <div className="bg-limeCream h-full rounded-full animate-auto-dismiss" />
+        </div>
+        <p className="text-xs text-kioskGray mt-2 font-medium">
+          Auto-closing in {secondsRemaining}s
+        </p>
+
         {/* Bottom Hardware Subtext */}
-        <p className="text-xs text-gray-400 mt-5">
+        <p className="text-xs text-gray-400 mt-3">
           {scanEvent.device_info || "Demo scan · no barcode hardware connected"}
         </p>
       </div>
