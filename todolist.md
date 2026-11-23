@@ -74,9 +74,9 @@
 > **I want** the top navbar `Scanner` indicator to detect the Raspberry Pi Camera Module v3, show its name with a colored status dot (green = online, yellow = lagging, red/gray = offline or not detected), and disallow barcode scanning when opened on a regular web browser or mobile phone,  
 > **So that** I always know the real hardware state and cannot trigger invalid scans outside the physical kitchen kiosk.
 
-- [ ] **Step 1:** Update `/scanner/status` and `backend/app/services/scanner/scanner.py` to detect real Raspberry Pi camera hardware vs. non-Pi web/mobile environments and report `hardware_detected`, `sensor_name` (e.g., `"Pi Camera v3"`), and health `state` (`"online"`, `"lagging"`, `"offline"`, or `"not_detected"` based on frame age).
-- [ ] **Step 2:** Update `Navbar.jsx` to render a status dot (green = online, amber = lagging, red = offline/not detected) alongside the scanner label (e.g., `Scanner · ● Pi Camera v3` on kiosk, or `Scanner · ● Not detected (Web)` on browser/mobile) and a status dot for `Stores`.
-- [ ] **Step 3:** Disallow barcode scanning (`Scan New Item`) when no physical scanner hardware is detected (web browser / mobile mode), locking or disabling scan actions cleanly.
+- [x] **Step 1:** Update `/scanner/status` and `backend/app/services/scanner/scanner.py` to detect real Raspberry Pi camera hardware vs. non-Pi web/mobile environments and report `hardware_detected`, `sensor_short_name` (e.g., `"Pi Camera v3"`), and health `state` (`"online"`, `"lagging"`, `"offline"`, or `"not_detected"` based on frame age).
+- [x] **Step 2:** Update `Navbar.jsx` to render a status dot (green = online, amber = lagging, red = offline/not detected) alongside the scanner label (e.g., `Scanner · ● Pi Camera v3` on kiosk, or `Scanner · ● Not detected` on browser/mobile) and a status dot for `Stores`.
+- [x] **Step 3:** Disallow barcode scanning (`Scan New Item`) when no physical scanner hardware is detected (web browser / mobile mode), locking scan actions cleanly.
 
 ---
 

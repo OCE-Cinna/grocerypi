@@ -31,6 +31,8 @@ export default function DashboardPage({
   onEdit,
   onDelete,
   onOpenScanModal,
+  canScan = true,
+  scannerStatus = "Pi Camera v3",
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -158,15 +160,39 @@ export default function DashboardPage({
           </div>
         </div>
 
-        {/* Primary Action Touch Button (Spans exact width of Columns 4–5) */}
+        {/* Primary Action Touch Button (Spans exact width of Columns 4–5; locked when no Pi camera is detected) */}
         <button
-          onClick={onOpenScanModal}
-          className="md:col-span-2 w-full min-h-[104px] md:min-h-[136px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-2xl flex items-center justify-center gap-4 transition-all active:scale-98 shadow-md cursor-pointer"
+          type="button"
+          onClick={() => {
+            if (canScan) onOpenScanModal();
+          }}
+          disabled={!canScan}
+          title={
+            canScan
+              ? "Open live barcode scanner"
+              : "Barcode scanning is only enabled on the Raspberry Pi camera kiosk"
+          }
+          className={`md:col-span-2 w-full min-h-[104px] md:min-h-[136px] rounded-2xl font-bold flex flex-col items-center justify-center gap-1.5 transition-all shadow-md ${
+            canScan
+              ? "bg-gunmetal hover:bg-gunmetal-dark text-white active:scale-98 cursor-pointer"
+              : "bg-gray-300 text-gray-600 cursor-not-allowed opacity-85"
+          }`}
         >
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center">
-            <FigmaBarcode className="w-8 h-8 fill-[#F7F4F2]" />
+          <div className="flex items-center gap-3.5 text-2xl">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center">
+              <FigmaBarcode
+                className={`w-8 h-8 ${
+                  canScan ? "fill-[#F7F4F2]" : "fill-gray-600"
+                }`}
+              />
+            </div>
+            <span>Scan New Item</span>
           </div>
-          <span>Scan New Item</span>
+          {!canScan && (
+            <span className="text-xs font-semibold text-gray-600">
+              Scanner · {scannerStatus} (Kiosk Camera Required)
+            </span>
+          )}
         </button>
       </div>
 

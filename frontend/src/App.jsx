@@ -32,7 +32,12 @@ export default function App() {
   const [editModalItem, setEditModalItem] = useState(null);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
-  const [scannerStatus, setScannerStatus] = useState("demo");
+  const [scannerInfo, setScannerInfo] = useState({
+    state: "not_detected",
+    label: "Not detected",
+    hardwareDetected: false,
+    canScan: false,
+  });
 
   /**
    * Fetches the current list of kitchen inventory items from the backend,
@@ -65,7 +70,27 @@ export default function App() {
       if (prodRes.status === "fulfilled") setSampleProducts(prodRes.value.data);
       if (nutRes.status === "fulfilled") setNutritionSummary(nutRes.value.data);
       if (scanRes.status === "fulfilled") {
-        setScannerStatus(scanRes.value.data.running ? "hardware active" : "demo");
+        const sData = scanRes.value.data || {};
+        const host = window.location.hostname;
+        const isLocalKioskHost = host === "localhost" || host === "127.0.0.1";
+        const hwDetected = Boolean(sData.hardware_detected);
+
+        if (hwDetected && isLocalKioskHost) {
+          const state = sData.state || (sData.running ? "online" : "offline");
+          setScannerInfo({
+            state,
+            label: sData.sensor_short_name || "Pi Camera v3",
+            hardwareDetected: true,
+            canScan: state === "online" || state === "lagging",
+          });
+        } else {
+          setScannerInfo({
+            state: "not_detected",
+            label: isLocalKioskHost ? "Not detected" : "Not detected (Web)",
+            hardwareDetected: false,
+            canScan: false,
+          });
+        }
       }
     } catch (err) {
       console.error("Auxiliary data fetch error:", err);
@@ -309,8 +334,10 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onHome={() => setIsSystemModalOpen(true)}
-        scannerStatus={scannerStatus}
-        storesStatus="not connected"
+        scannerStatus={scannerInfo.label}
+        scannerState={scannerInfo.state}
+        storesStatus="Not connected"
+        storesConnected={false}
       />
 
       {/* Main Kiosk Views */}
@@ -324,7 +351,11 @@ export default function App() {
             onDecrement={handleDecrement}
             onEdit={(item) => setEditModalItem(item)}
             onDelete={(item) => setDeleteModalItem(item)}
-            onOpenScanModal={() => setIsScanModalOpen(true)}
+            onOpenScanModal={() => {
+              if (scannerInfo.canScan) setIsScanModalOpen(true);
+            }}
+            canScan={scannerInfo.canScan}
+            scannerStatus={scannerInfo.label}
           />
         )}
 

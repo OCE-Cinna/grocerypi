@@ -18,11 +18,20 @@ router = APIRouter(prefix="/scanner", tags=["Hardware Scanner"])
 
 @router.get("/status")
 def get_scanner_status():
-    """Tells the frontend whether the physical camera scanner is currently running and its frame/decode rates."""
+    """
+    Tells the frontend whether the physical Raspberry Pi Camera Module v3 is
+    connected and online, lagging, offline, or not detected, along with its
+    preview FPS and decode interval.
+    """
     scanner = get_barcode_scanner()
+    if hasattr(scanner, "get_health_status"):
+        return scanner.get_health_status()
     return {
         "running": scanner.is_running,
+        "hardware_detected": getattr(scanner, "hardware_detected", False),
+        "state": "online" if scanner.is_running else "not_detected",
         "sensor": "Raspberry Pi Camera Module v3 (PDAF autofocus)",
+        "sensor_short_name": "Pi Camera v3" if scanner.is_running else "Not detected",
         "preview_fps": getattr(scanner, "fps", 12),
         "scan_interval_seconds": getattr(scanner, "scan_interval_seconds", 0.75),
     }

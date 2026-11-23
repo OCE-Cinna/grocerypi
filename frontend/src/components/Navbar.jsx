@@ -17,9 +17,20 @@ export default function Navbar({
   activeTab,
   onSelectTab,
   onHome,
-  scannerStatus = "demo",
-  storesStatus = "not connected",
+  scannerStatus = "Not detected",
+  scannerState = "not_detected",
+  storesStatus = "Not connected",
+  storesConnected = false,
 }) {
+  const scannerDotColor =
+    scannerState === "online"
+      ? "bg-emerald-400"
+      : scannerState === "lagging"
+      ? "bg-amber-400"
+      : "bg-rose-400";
+
+  const storesDotColor = storesConnected ? "bg-emerald-400" : "bg-rose-400";
+
   return (
     <header className="bg-gunmetal text-white select-none sticky top-0 z-40 border-b border-gray-800">
       <div className="max-w-[1180px] mx-auto px-4 sm:px-6 h-[80px] grid grid-cols-2 md:grid-cols-5 gap-3.5 items-center">
@@ -83,13 +94,23 @@ export default function Navbar({
           <span>Nutrition</span>
         </button>
 
-        {/* Column 5: Scanner & Store Status (Aligns over 'Hygiene' column) */}
-        <div className="hidden md:flex flex-col items-end justify-center text-right text-xs leading-snug text-gray-300">
-          <div>
-            Scanner · <span className="text-gray-400">{scannerStatus}</span>
+        {/* Column 5: Scanner & Store Status with Live Status Dots (Aligns over 'Hygiene' column) */}
+        <div className="hidden md:flex flex-col items-end justify-center text-right text-xs leading-snug text-gray-300 gap-1">
+          <div className="inline-flex items-center gap-1.5">
+            <span>Scanner ·</span>
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${scannerDotColor}`}
+              aria-hidden="true"
+            />
+            <span className="text-gray-200 font-semibold">{scannerStatus}</span>
           </div>
-          <div>
-            Stores · <span className="text-gray-400">{storesStatus}</span>
+          <div className="inline-flex items-center gap-1.5">
+            <span>Stores ·</span>
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${storesDotColor}`}
+              aria-hidden="true"
+            />
+            <span className="text-gray-200 font-semibold">{storesStatus}</span>
           </div>
         </div>
       </div>

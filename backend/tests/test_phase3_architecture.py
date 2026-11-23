@@ -307,20 +307,31 @@ def test_products_scanner_and_auth_endpoints():
     assert patch_prod.json()["package_size"] == "12 pack"
     assert patch_prod.json()["preferred_store"] == "Jumbo"
 
-    # 4. Check /scanner status and camera FPS vs decode throttle interval
+    # 4. Check /scanner status, hardware detection states, and camera FPS vs decode throttle interval
     assert issubclass(AHClient, IStoreGateway)
     scan_status = client.get("/scanner/status")
     assert scan_status.status_code == 200
     status_data = scan_status.json()
     assert "sensor" in status_data
+    assert "hardware_detected" in status_data
+    assert "state" in status_data
+    assert "sensor_short_name" in status_data
     assert status_data["preview_fps"] == 12
     assert 0.5 <= status_data["scan_interval_seconds"] <= 1.0
 
-    # 5. Directly test Picamera2BarcodeScanner decode throttling (12 FPS preview, 0.75s decode)
+    # 5. Directly test Picamera2BarcodeScanner decode throttling & health status states
     from app.services.scanner.scanner import Picamera2BarcodeScanner
     cam_scanner = Picamera2BarcodeScanner(fps=12, scan_interval_seconds=0.75)
     assert cam_scanner.fps == 12
     assert cam_scanner.scan_interval_seconds == 0.75
+    assert cam_scanner.get_health_status(now=100.0)["state"] == "not_detected"
+    cam_scanner._hardware_detected = True
+    cam_scanner._is_running = True
+    cam_scanner._last_frame_time = 99.5
+    assert cam_scanner.get_health_status(now=100.0)["state"] == "online"
+    assert cam_scanner.get_health_status(now=103.5)["state"] == "lagging"
+    cam_scanner._is_running = False
+    assert cam_scanner.get_health_status(now=103.5)["state"] == "offline"
     # First check at t=100.0s should trigger a decode
     assert cam_scanner._should_trigger_decode(now=100.0) is True
     # Next frame 83ms later (12 FPS -> t=100.083s) should skip decode so preview stays fast

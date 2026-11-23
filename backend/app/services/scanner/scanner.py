@@ -146,11 +146,56 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         self._latest_jpeg: Optional[bytes] = None
         self._is_decoding: bool = False
         self._last_decode_time: float = 0.0
+        self._last_frame_time: float = 0.0
+        self._hardware_detected: bool = False
 
     @property
     def is_running(self) -> bool:
         """Returns True if the camera loop is currently running."""
         return self._is_running
+
+    @property
+    def hardware_detected(self) -> bool:
+        """Returns True when the physical Raspberry Pi Camera Module v3 is connected."""
+        return self._hardware_detected
+
+    def get_health_status(self, now: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Checks the health of the physical Raspberry Pi Camera Module v3:
+        - 'online': Camera hardware is connected, running, and delivering frames on time.
+        - 'lagging': Camera is running, but the last frame took longer than 2.5 seconds.
+        - 'offline': Camera hardware is present, but the scanner is currently stopped.
+        - 'not_detected': No physical Raspberry Pi camera was found on this device.
+        """
+        cur_now = now if now is not None else time.time()
+        frame_age = (
+            round(max(0.0, cur_now - self._last_frame_time), 2)
+            if self._last_frame_time > 0
+            else None
+        )
+        if not self._hardware_detected:
+            state = "not_detected"
+            short_name = "Not detected"
+        elif not self._is_running:
+            state = "offline"
+            short_name = "Pi Camera v3 (Offline)"
+        elif frame_age is not None and frame_age > 2.5:
+            state = "lagging"
+            short_name = "Pi Camera v3 (Lagging)"
+        else:
+            state = "online"
+            short_name = "Pi Camera v3"
+
+        return {
+            "running": self._is_running,
+            "hardware_detected": self._hardware_detected,
+            "state": state,
+            "sensor": "Raspberry Pi Camera Module v3 (PDAF autofocus)",
+            "sensor_short_name": short_name,
+            "last_frame_age_seconds": frame_age,
+            "preview_fps": self.fps,
+            "scan_interval_seconds": self.scan_interval_seconds,
+        }
 
     def get_latest_jpeg(self) -> Optional[bytes]:
         """
@@ -289,6 +334,8 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             logger.info(f"Picamera2 initialized with hardware transform: vflip={self.vflip}, hflip={self.hflip}")
 
             self._picam2.start()
+            self._hardware_detected = True
+            self._last_frame_time = time.time()
 
             try:
                 # AfMode 2 = Continuous Autofocus; AeExposureMode 1 = Short exposure (reduces motion blur);
@@ -326,6 +373,8 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                 if frame is None or frame.size == 0:
                     time.sleep(0.05)
                     continue
+
+                self._last_frame_time = time.time()
 
                 if _HAS_CV2:
                     try:
@@ -435,6 +484,24 @@ class MockBarcodeScanner(IBarcodeScanner):
     def is_running(self) -> bool:
         """Returns True if the test scanner is turned on."""
         return self._is_running
+
+    @property
+    def hardware_detected(self) -> bool:
+        """Returns False because MockBarcodeScanner has no physical Pi camera hardware."""
+        return False
+
+    def get_health_status(self, now: Optional[float] = None) -> Dict[str, Any]:
+        """Reports that no physical Raspberry Pi camera hardware is connected."""
+        return {
+            "running": self._is_running,
+            "hardware_detected": False,
+            "state": "not_detected",
+            "sensor": "Mock Barcode Scanner (No Hardware)",
+            "sensor_short_name": "Not detected",
+            "last_frame_age_seconds": None,
+            "preview_fps": 12,
+            "scan_interval_seconds": 0.75,
+        }
 
     def get_latest_jpeg(self) -> Optional[bytes]:
         """Returns a simple placeholder preview image when running in test mode."""
