@@ -38,6 +38,11 @@ export default function App() {
     hardwareDetected: false,
     canScan: false,
   });
+  const [storesInfo, setStoresInfo] = useState({
+    connected: false,
+    label: "Not connected",
+    connectedStores: [],
+  });
 
   /**
    * Fetches the current list of kitchen inventory items from the backend,
@@ -62,13 +67,21 @@ export default function App() {
    */
   const fetchAuxData = useCallback(async () => {
     try {
-      const [prodRes, nutRes, scanRes] = await Promise.allSettled([
+      const [prodRes, nutRes, scanRes, storeRes] = await Promise.allSettled([
         api.get("/products?limit=25"),
         api.get("/inventory/nutrition/summary"),
         api.get("/scanner/status"),
+        api.get("/cart/stores/status"),
       ]);
       if (prodRes.status === "fulfilled") setSampleProducts(prodRes.value.data);
       if (nutRes.status === "fulfilled") setNutritionSummary(nutRes.value.data);
+      if (storeRes.status === "fulfilled" && storeRes.value.data) {
+        setStoresInfo({
+          connected: Boolean(storeRes.value.data.connected),
+          label: storeRes.value.data.label || "Not connected",
+          connectedStores: storeRes.value.data.connected_stores || [],
+        });
+      }
       if (scanRes.status === "fulfilled") {
         const sData = scanRes.value.data || {};
         const host = window.location.hostname;
@@ -336,8 +349,8 @@ export default function App() {
         onHome={() => setIsSystemModalOpen(true)}
         scannerStatus={scannerInfo.label}
         scannerState={scannerInfo.state}
-        storesStatus="Not connected"
-        storesConnected={false}
+        storesStatus={storesInfo.label}
+        storesConnected={storesInfo.connected}
       />
 
       {/* Main Kiosk Views */}
@@ -361,6 +374,7 @@ export default function App() {
 
         {activeTab === "cart" && (
           <CartPage
+            storesInfo={storesInfo}
             onCartSynced={() => {
               fetchInventory(activeSortNutrient);
               fetchAuxData();

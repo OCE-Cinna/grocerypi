@@ -2,18 +2,19 @@ import React, { useState, useEffect } from "react";
 import { M3Cart as ShoppingCart, M3CheckCircle as CheckCircle2, M3Refresh as RefreshCw } from "../components/Material3Icons";
 import api from "../api/client";
 
-export default function CartPage({ onCartSynced }) {
+export default function CartPage({ onCartSynced, storesInfo }) {
   const [storeQueues, setStoreQueues] = useState([]);
   const [activeQueueId, setActiveQueueId] = useState("AH");
   const [loading, setLoading] = useState(true);
   const [synced, setSynced] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [lastSyncInfo, setLastSyncInfo] = useState(null);
 
   // Fetch smart replenishment queues from backend
   const fetchCartSuggestions = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/inventory/cart/suggestions");
+      const res = await api.get("/cart/suggestions");
       if (res.data?.queues && res.data.queues.length > 0) {
         setStoreQueues(res.data.queues);
         // Default to the first queue or AH
@@ -95,17 +96,30 @@ export default function CartPage({ onCartSynced }) {
   const handleSyncCart = async () => {
     setSyncing(true);
     try {
-      await api.post(`/inventory/cart/sync/${activeQueueId}`);
+      const res = await api.post(`/cart/sync/${activeQueueId}`);
+      setLastSyncInfo(res.data || null);
       await fetchCartSuggestions();
       if (onCartSynced) {
         onCartSynced();
       }
+      setSynced(true);
+      setTimeout(() => setSynced(false), 4000);
     } catch (err) {
       console.error("Failed to sync cart queue:", err);
+      setLastSyncInfo({
+        error: "Could not reach supermarket sync endpoint. Local list saved.",
+      });
     } finally {
       setSyncing(false);
-      setSynced(true);
-      setTimeout(() => setSynced(false), 3000);
+    }
+  };
+
+  const handleToggleStoreConnection = async (storeId) => {
+    try {
+      await api.post(`/cart/stores/connect/${storeId}`);
+      if (onCartSynced) onCartSynced();
+    } catch (err) {
+      console.error("Failed to toggle store connection:", err);
     }
   };
 
@@ -251,6 +265,52 @@ export default function CartPage({ onCartSynced }) {
           </>
         )}
       </button>
+
+      {/* Sync Confirmation & Anti-Ban Direct Web/App Link Banner */}
+      {lastSyncInfo && (
+        <div className="mt-4 p-4 bg-white border border-gray-300 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs text-sm text-gunmetal">
+          <div>
+            {lastSyncInfo.error ? (
+              <span className="font-semibold text-dustyRose-dark">
+                {lastSyncInfo.error}
+              </span>
+            ) : (
+              <span>
+                <strong className="font-bold">
+                  Synced {lastSyncInfo.synced_count ?? 0} item
+                  {lastSyncInfo.synced_count === 1 ? "" : "s"} to{" "}
+                  {lastSyncInfo.store || activeQueueId}:
+                </strong>{" "}
+                Removed visually from Dashboard &amp; ready for direct web/app
+                shopping list sync.
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {lastSyncInfo.gateway_sync?.checkout_url && (
+              <a
+                href={lastSyncInfo.gateway_sync.checkout_url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gunmetal text-white hover:bg-gunmetal-dark transition-colors"
+              >
+                Open {lastSyncInfo.store || activeQueueId} Web List
+              </a>
+            )}
+            {(activeQueueId === "AH" || activeQueueId === "Jumbo") && (
+              <button
+                type="button"
+                onClick={() => handleToggleStoreConnection(activeQueueId)}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gunmetal border border-gray-300 transition-colors cursor-pointer"
+              >
+                {storesInfo?.connectedStores?.includes(activeQueueId)
+                  ? `Disconnect ${activeQueueId} App`
+                  : `Connect ${activeQueueId} App`}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Footer Disclaimer */}
       <p className="text-xs text-kioskGray mt-4">

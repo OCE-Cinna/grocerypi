@@ -175,17 +175,17 @@
 > **I want** tapping *"Sync Recommended Items to Supermarket Cart"* to call a real backend sync endpoint (`POST /cart/sync/{store}`) with clear error/fallback handling,  
 > **So that** recommended items are pushed to our supermarket list and marked as synced.
 
-- [ ] **Step 1:** Create `backend/app/routers/cart.py` with `GET /cart/suggestions` and `POST /cart/sync/{store}` (supporting `AH` and `Jumbo` queues, plus local list export/fallback when unauthenticated).
-- [ ] **Step 2:** Research and implement the safest direct cart/list sync method for **Albert Heijn** and **Jumbo** (comparing authenticated mobile app session token vs. direct web browser cart/list sync URLs) that updates the user's real mobile app or web cart without triggering anti-bot account bans.
-- [ ] **Step 3:** Replace the mock `setTimeout` in `frontend/src/pages/CartPage.jsx` (`handleSyncCart`) with a real `api.post(\`/cart/sync/\${activeQueueId}\`)` call, displaying synced item counts, timestamp, and error fallback states.
-- [ ] **Step 4:** Update `storesStatus` in `frontend/src/App.jsx` and `Navbar.jsx` to display which real supermarket account/application is actively connected for cart syncing (e.g., `Stores · ● AH Connected`, `Stores · ● AH & Jumbo`, or `Stores · ● Not connected` when only using anonymous catalog lookup).
+- [x] **Step 1:** Create `backend/app/routers/cart.py` with `GET /cart/suggestions`, `GET /cart/stores/status`, `POST /cart/stores/connect/{store}`, and `POST /cart/sync/{store}` (supporting `AH`, `Jumbo`, and `Lidl` queues, plus local list export/fallback when unauthenticated).
+- [x] **Step 2:** Research and implement the safest direct cart/list sync method for **Albert Heijn** and **Jumbo** (using direct web/mobile app shopping list deep-links `https://www.ah.nl/mijnlijst`, `appie://shoppinglist`, `https://www.jumbo.com/lijstjes`, and `jumbo://shoppinglist` so user accounts are never banned for botting).
+- [x] **Step 3:** Replace the mock `setTimeout` in `frontend/src/pages/CartPage.jsx` (`handleSyncCart`) with a real `api.post(\`/cart/sync/\${activeQueueId}\`)` call, displaying synced item counts, timestamp, direct web list link, and error fallback states.
+- [x] **Step 4:** Update `storesStatus` in `frontend/src/App.jsx` and `Navbar.jsx` to display which real supermarket account/application is actively connected for cart syncing (e.g., `Stores · ● AH Connected`, `Stores · ● AH & Jumbo`, or `Stores · ● Not connected` when only using anonymous catalog lookup).
 
 #### User Story 4.3.2 — Automated Unit & Integration Test Suite
 > **As a** developer ensuring data consistency and risk mitigation,  
 > **I want** automated `pytest` tests covering the refactored `InventoryService`, `PredictionEngine`, `NutritionService`, and `IStoreGateway` fallback chain,  
 > **So that** regressions are caught before deploying to the Raspberry Pi kiosk.
 
-- [ ] **Step 1:** Expand `backend/tests/test_phase2_inventory.py` (or add `test_phase3_services.py` and `test_phase4_prediction_and_cart.py`) to test rolling interval updates, `AHStoreGateway` → `OpenFoodFactsClient` → placeholder fallback chain, store routing, and `PATCH /inventory/{id}`.
+- [x] **Step 1:** Expand `backend/tests/test_phase3_architecture.py` and `backend/tests/test_phase2_inventory.py` to test rolling interval updates, `AHStoreGateway` → `OpenFoodFactsClient` → placeholder fallback chain, store routing, `/cart/sync/{store}`, and `PATCH /inventory/{id}`.
 
 ---
 

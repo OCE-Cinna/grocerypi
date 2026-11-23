@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import auth, inventory, products, scanner, system
+from app.routers import auth, cart, inventory, products, scanner, system
 from app.services.inventory.inventory import inventory_service
 from app.services.scanner.scanner import get_barcode_scanner
 
@@ -62,9 +62,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Connect all route groups (inventory, products, camera scanner, system, and login)
+# Connect all route groups (inventory, products, cart, camera scanner, system, and login)
 app.include_router(inventory.router)
 app.include_router(products.router)
+app.include_router(cart.router)
 app.include_router(scanner.router)
 app.include_router(system.router)
 app.include_router(auth.router)

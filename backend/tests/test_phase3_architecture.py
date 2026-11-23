@@ -583,6 +583,23 @@ def test_checkin_midnight_batch_auto_depletion_and_cart_sync():
         db.commit()
         emp_iv = PredictionEngine.calculate_empirical_interval_days(db, dish_soap.id, current_interval=10.0)
         assert 9.5 <= emp_iv <= 10.5
+
+        # 8. Epic 4.3: Dedicated /cart router (/cart/suggestions, /cart/stores/status, /cart/sync/{store})
+        store_status_res = client.get("/cart/stores/status")
+        assert store_status_res.status_code == 200
+        assert "label" in store_status_res.json()
+
+        cart_sug_res = client.get("/cart/suggestions")
+        assert cart_sug_res.status_code == 200
+        assert len(cart_sug_res.json()["queues"]) == 3
+
+        cart_sync_res = client.post("/cart/sync/AH")
+        assert cart_sync_res.status_code == 200
+        sync_body = cart_sync_res.json()
+        assert sync_body["store"] == "AH"
+        assert "gateway_sync" in sync_body
+        assert sync_body["stores_status"]["connected"] is True
+        assert "AH" in sync_body["stores_status"]["connected_stores"]
     finally:
         db.close()
 
