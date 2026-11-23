@@ -1,3 +1,14 @@
+"""
+Database tables (models) for GroceryPi.
+
+This file defines what information is stored in the local database:
+- ProductCatalog: General information about a grocery product (barcode, name, store, nutrition).
+- InventoryItem: How many units of a product are currently in the kitchen and when it will run out.
+- ScanLog: A history list of every barcode scanned by the camera.
+- PurchaseOrder & PurchaseOrderItem: Past supermarket receipts used to learn how often items are bought.
+- User, GroceryList, Item: User account details for password-protected mobile access.
+"""
+
 from datetime import datetime, timezone
 import enum
 from sqlalchemy import Boolean, Column, DateTime, Enum as SAEnum, Float, ForeignKey, Integer, String, Text
@@ -6,9 +17,10 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-# ─── Enums ───────────────────────────────────────────────────────────────────
+# ─── Fixed Options (Enums) ───────────────────────────────────────────────────
 
 class ItemCategory(str, enum.Enum):
+    """Categories used to group products on the kitchen dashboard."""
     FOOD = "Food"
     HOUSEHOLD = "Household"
     HYGIENE = "Hygiene"
@@ -16,6 +28,7 @@ class ItemCategory(str, enum.Enum):
 
 
 class PreferredStore(str, enum.Enum):
+    """Supermarkets where a product is usually bought."""
     AH = "AH"
     JUMBO = "Jumbo"
     LIDL = "Lidl"
@@ -23,20 +36,23 @@ class PreferredStore(str, enum.Enum):
 
 
 class InventoryStatus(str, enum.Enum):
+    """Current stock level of an item in the kitchen."""
     IN_STOCK = "IN_STOCK"
     DEPLETED = "DEPLETED"
     PREDICTED_LOW = "PREDICTED_LOW"
 
 
 class ScanStatus(str, enum.Enum):
+    """Result of a barcode scan attempt."""
     SUCCESS = "SUCCESS"
     UNKNOWN_BARCODE = "UNKNOWN_BARCODE"
     ERROR = "ERROR"
 
 
-# ─── Auth & Legacy Lists ─────────────────────────────────────────────────────
+# ─── User Accounts & Manual Lists ────────────────────────────────────────────
 
 class User(Base):
+    """Stores user login information (username, email, and securely hashed password)."""
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -49,6 +65,7 @@ class User(Base):
 
 
 class GroceryList(Base):
+    """Stores custom shopping lists created by a user."""
     __tablename__ = "grocery_lists"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -67,6 +84,7 @@ class GroceryList(Base):
 
 
 class Item(Base):
+    """Stores an individual row inside a custom shopping list."""
     __tablename__ = "items"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -80,10 +98,14 @@ class Item(Base):
     grocery_list = relationship("GroceryList", back_populates="items")
 
 
-# ─── GroceryPi Inventory & Barcode Domain Models ─────────────────────────────
+# ─── GroceryPi Inventory & Barcode Tables ────────────────────────────────────
 
 class ProductCatalog(Base):
-    """Global or household product reference mapped by unique barcode (e.g. EAN-13)."""
+    """
+    Stores the master details of a grocery product linked to its barcode.
+    Includes the product name, brand, category, store badge, Nutri-Score,
+    vegan/vegetarian flags, and 9 nutrition values per 100g.
+    """
     __tablename__ = "product_catalog"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -96,12 +118,12 @@ class ProductCatalog(Base):
     webshop_id = Column(Integer, nullable=True, index=True)
     package_size = Column(String(50), nullable=True)
 
-    # Dietary & Health Attributes
-    nutriscore = Column(String(5), nullable=True)  # 'A', 'B', 'C', 'D', 'E'
+    # Diet and health labels
+    nutriscore = Column(String(5), nullable=True)  # Grade 'A', 'B', 'C', 'D', or 'E'
     is_vegetarian = Column(Boolean, default=False, nullable=False)
     is_vegan = Column(Boolean, default=False, nullable=False)
 
-    # Nutritional metadata per 100g / serving (Strict Order: Energy kJ/kcal, Fat, SatFat, Carbs, Sugar, Fiber, Protein, Salt)
+    # Nutrition values per 100g in standard European label order
     energy_kj = Column(Float, default=0.0, nullable=False)
     energy_kcal = Column(Float, default=0.0, nullable=False)
     fat_grams = Column(Float, default=0.0, nullable=False)
@@ -124,18 +146,22 @@ class ProductCatalog(Base):
 
 
 class InventoryItem(Base):
-    """Tracks current physical stock and consumption intervals under the 'Items IN' paradigm."""
+    """
+    Tracks how much of a product is currently in the kitchen.
+    Also stores when it was last scanned in and how many days it usually lasts,
+    so the app can predict when to add it to the shopping cart.
+    """
     __tablename__ = "inventory_items"
 
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("product_catalog.id"), unique=True, nullable=False)
     quantity = Column(Integer, default=1, nullable=False)
     status = Column(SAEnum(InventoryStatus), default=InventoryStatus.IN_STOCK, nullable=False)
-    
+
     last_restocked_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     predicted_depletion_at = Column(DateTime(timezone=True), nullable=True)
-    restock_interval_days = Column(Float, default=7.0, nullable=False)  # rolling average days between restocks
-    manual_interval_override = Column(Float, nullable=True)  # user-configured override for dual-store/Jumbo purchases
+    restock_interval_days = Column(Float, default=7.0, nullable=False)  # Average days between restocks
+    manual_interval_override = Column(Float, nullable=True)  # Custom days set by the user
     is_dual_store = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -149,7 +175,7 @@ class InventoryItem(Base):
 
 
 class ScanLog(Base):
-    """Audit log of raw optical barcode reads dispatched from the hardware sensor."""
+    """Saves a record every time a barcode is scanned, including the time and scanner used."""
     __tablename__ = "scan_logs"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -162,10 +188,10 @@ class ScanLog(Base):
     product = relationship("ProductCatalog", back_populates="scan_logs")
 
 
-# ─── Receipt & Purchase Order History ────────────────────────────────────────
+# ─── Supermarket Receipt History ─────────────────────────────────────────────
 
 class PurchaseOrder(Base):
-    """Historical supermarket invoices (AH, Jumbo, etc.) for empirical replenishment modeling."""
+    """Stores past supermarket receipts (like Albert Heijn invoices) to calculate buying habits."""
     __tablename__ = "purchase_orders"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -179,7 +205,7 @@ class PurchaseOrder(Base):
 
 
 class PurchaseOrderItem(Base):
-    """Individual line items parsed from historical invoices."""
+    """Stores a single product line from a past supermarket receipt."""
     __tablename__ = "purchase_order_items"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -192,4 +218,3 @@ class PurchaseOrderItem(Base):
 
     order = relationship("PurchaseOrder", back_populates="items")
     product = relationship("ProductCatalog")
-

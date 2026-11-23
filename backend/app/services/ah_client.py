@@ -1,8 +1,12 @@
 """
-Albert Heijn Mobile API Client for GroceryPi
-Reverse-engineered from Appie iOS app (v9.28) / appie-go / jabbink gist.
-Provides product metadata lookup, GTIN barcodes, 9-metric European nutritional facts,
-and hooks for receipt/cart synchronization.
+Supermarket product lookup client for GroceryPi (Albert Heijn and Open Food Facts).
+
+This file connects to the Albert Heijn mobile API to look up product names,
+package sizes, Nutri-Scores, vegan/vegetarian badges, and nutrition facts using
+a scanned barcode. If a product comes from another supermarket (like Jumbo or
+Lidl) and is not found in Albert Heijn, it uses the public Open Food Facts
+database as a backup. It also saves found products in a local cache file so
+repeated lookups are fast.
 """
 
 import json
@@ -15,6 +19,7 @@ import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
+from app.clients.store_gateway import IStoreGateway
 from app.models import ProductCatalog, ItemCategory, PreferredStore
 
 logger = logging.getLogger("grocerypi.ah_client")
@@ -55,7 +60,11 @@ def map_category(main_cat: str, sub_cat: str, title: str) -> ItemCategory:
     return ItemCategory.FOOD
 
 
-class AHClient:
+class AHClient(IStoreGateway):
+    """
+    Connects to the Albert Heijn online catalog and Open Food Facts database to
+    fetch product names, package sizes, Nutri-Scores, and nutrition values.
+    """
     BASE_URL = "https://api.ah.nl"
     AUTH_URL = "https://api.ah.nl/mobile-auth/v1/auth/token/anonymous"
 
@@ -103,7 +112,7 @@ class AHClient:
             self.save_cache(force=True)
 
     def get_token(self) -> Optional[str]:
-        """Fetch or refresh anonymous auth token."""
+        """Gets a temporary guest access token from Albert Heijn so we can look up products."""
         now = time.time()
         if self.token and now < (self.token_expiry - 60):
             return self.token
@@ -279,8 +288,9 @@ class AHClient:
 
     def get_product_by_gtin(self, barcode: str) -> Optional[Dict[str, Any]]:
         """
-        Directly fetches product metadata, nutriscore, vegan/veg status,
-        and nutritional facts from AH Mobile API by barcode / GTIN.
+        Looks up a product in Albert Heijn using its barcode number.
+        Returns the product's name, category, Nutri-Score, vegan/vegetarian badges,
+        and all 9 nutrition values per 100g.
         """
         clean_barcode = barcode.strip()
         cache_key = f"gtin:{clean_barcode}"
@@ -400,7 +410,10 @@ class AHClient:
         return result
 
     def get_product_from_openfoodfacts(self, barcode: str) -> Optional[Dict[str, Any]]:
-        """Fallback to Open Food Facts API for non-Albert Heijn grocery packaging."""
+        """
+        Looks up a barcode in the free Open Food Facts database when a product
+        is not sold at Albert Heijn (for example, items from Jumbo or Lidl).
+        """
         clean_barcode = barcode.strip()
         url = f"https://world.openfoodfacts.org/api/v2/product/{clean_barcode}.json"
         try:
@@ -458,6 +471,7 @@ class AHClient:
 _ah_client_instance: Optional[AHClient] = None
 
 def get_ah_client() -> AHClient:
+    """Returns the shared Albert Heijn lookup client instance."""
     global _ah_client_instance
     if _ah_client_instance is None:
         _ah_client_instance = AHClient()
@@ -466,10 +480,9 @@ def get_ah_client() -> AHClient:
 
 def resolve_barcode_to_catalog_item(barcode: str, db: Session) -> ProductCatalog:
     """
-    Attempts to resolve barcode from AH API (or OpenFoodFacts fallback).
-    If found, saves a new ProductCatalog record into the database and returns it.
-    If not found in external APIs, creates a registered placeholder catalog entry
-    so that inventory tracking and kiosk scanning always succeed without errors.
+    Finds a scanned barcode online (checking Albert Heijn first and Open Food Facts
+    second). If found, it saves the new product and its nutrition facts into the
+    local database so future scans are instant.
     """
     clean_barcode = barcode.strip()
     existing = db.query(ProductCatalog).filter(ProductCatalog.barcode == clean_barcode).first()

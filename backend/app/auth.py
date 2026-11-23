@@ -1,16 +1,24 @@
+"""
+Password security and login token helpers for GroceryPi.
+
+This file protects user passwords by turning them into unreadable hashes (using
+bcrypt) before saving them in the database, and creates login tokens (JWT) so
+authorized mobile users can interact with the app online.
+"""
+
 from datetime import datetime, timedelta, timezone
+import os
 from typing import Optional
 
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv
-import os
 
-from app.database import get_db
 from app import models
+from app.database import get_db
 
 load_dotenv()
 
@@ -23,14 +31,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def hash_password(password: str) -> str:
+    """Turns a plain-text password into a secure hash before saving it."""
     return pwd_context.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    """Checks if a typed password matches the saved password hash."""
     return pwd_context.verify(plain, hashed)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Creates a signed login token that keeps a user logged in for a set time."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -43,6 +54,10 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> models.User:
+    """
+    Checks the user's login token on protected requests and returns the matching
+    user account from the database.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

@@ -1,11 +1,29 @@
+"""
+Camera barcode scanner service for GroceryPi.
+
+This file controls the Raspberry Pi Camera Module v3 to read barcodes from
+grocery packages. It captures photos in the background, reads the barcode numbers
+using image-reading libraries (pyzbar and OpenCV), prevents the same item from
+being scanned twice by mistake within a few seconds, and provides a fake scanner
+(MockBarcodeScanner) so the app can also be tested on a normal computer without
+a Pi camera attached.
+"""
+
+from abc import ABC, abstractmethod
 import logging
 import os
 import threading
 import time
-from abc import ABC, abstractmethod
-from typing import Callable, Optional, Dict, Tuple
-import cv2
-import numpy as np
+from typing import Any, Callable, Dict, Optional, Tuple
+
+try:
+    import cv2
+    import numpy as np
+    _HAS_CV2 = True
+except ImportError:
+    cv2 = None  # type: ignore
+    np = None  # type: ignore
+    _HAS_CV2 = False
 
 try:
     from pyzbar import pyzbar
@@ -17,39 +35,44 @@ logger = logging.getLogger("grocerypi.scanner")
 
 
 class IBarcodeScanner(ABC):
-    """Abstract interface defining the barcode scanning service contract (SOLID ISP / DIP)."""
+    """
+    Common template that any barcode scanner must follow.
+    Because the app uses this template, we can switch between the Pi camera,
+    a USB barcode scanner, or a test scanner without changing the rest of the code.
+    """
 
     @abstractmethod
     def start(self, on_scan: Callable[[str], None]) -> None:
-        """Start the background optical capture and barcode detection stream."""
+        """Turns on the scanner in the background and runs on_scan when a barcode is read."""
         pass
 
     @abstractmethod
     def stop(self) -> None:
-        """Stop the capture loop and release camera hardware resources."""
+        """Turns off the scanner and releases the camera hardware."""
         pass
 
     @property
     @abstractmethod
     def is_running(self) -> bool:
-        """Returns True if the optical scanner loop is currently active."""
+        """Returns True if the scanner is currently active."""
         pass
 
     @abstractmethod
-    def decode_frame(self, frame: np.ndarray) -> Optional[str]:
-        """Decode a single numpy image frame and return the detected barcode string."""
+    def decode_frame(self, frame: Any) -> Optional[str]:
+        """Tries to find and read a barcode number from a single camera picture."""
         pass
 
     @abstractmethod
     def get_latest_jpeg(self) -> Optional[bytes]:
-        """Returns the latest captured frame encoded as JPEG bytes for preview streaming."""
+        """Returns the most recent camera image as a JPEG file for the live screen preview."""
         pass
 
 
 class Picamera2BarcodeScanner(IBarcodeScanner):
     """
-    Physical hardware barcode scanner implementation for Raspberry Pi Camera Module v3.
-    Utilizes picamera2 for frame capture with PDAF autofocus and OpenCV BarcodeDetector.
+    Controls the physical Raspberry Pi Camera Module v3.
+    Takes pictures continuously in the background, focuses the lens automatically,
+    and checks each image for a product barcode.
     """
 
     def __init__(
@@ -60,17 +83,21 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         vflip: Optional[bool] = None,
         hflip: Optional[bool] = None,
     ):
+        """
+        Sets up camera settings such as image size, pause time between identical
+        scans (debounce_seconds), frames per second (defaults to 1 FPS to keep
+        the Raspberry Pi cool), and flipping the image if the camera mount is upside down.
+        """
         self.resolution = resolution
         self.debounce_seconds = debounce_seconds
-        # Defaults to 1 FPS for ultra-efficient CPU and battery/thermal performance on Raspberry Pi
         self.fps = fps if fps is not None else int(os.getenv("CAMERA_FPS", "1"))
         self.vflip = vflip if vflip is not None else os.getenv("CAMERA_VFLIP", "true").lower() in ("true", "1", "yes")
         self.hflip = hflip if hflip is not None else os.getenv("CAMERA_HFLIP", "false").lower() in ("true", "1", "yes")
         self._is_running = False
         self._thread: Optional[threading.Thread] = None
         self._on_scan_callback: Optional[Callable[[str], None]] = None
-        self._recent_scans: Dict[str, float] = {}  # {barcode: timestamp}
-        self._detector = cv2.barcode.BarcodeDetector()
+        self._recent_scans: Dict[str, float] = {}
+        self._detector = cv2.barcode.BarcodeDetector() if _HAS_CV2 else None
         self._picam2 = None
         self._lock = threading.Lock()
         self._latest_jpeg: Optional[bytes] = None
@@ -78,12 +105,19 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
 
     @property
     def is_running(self) -> bool:
+        """Returns True if the camera loop is currently running."""
         return self._is_running
 
     def get_latest_jpeg(self) -> Optional[bytes]:
+        """
+        Returns the latest camera picture for the Scan Modal preview, or a simple
+        placeholder image while the camera is still warming up.
+        """
         with self._lock:
             if self._latest_jpeg is not None:
                 return self._latest_jpeg
+        if not _HAS_CV2:
+            return None
         img = np.zeros((360, 480, 3), dtype=np.uint8)
         img[:] = (56, 61, 59)
         cv2.rectangle(img, (80, 60), (400, 300), (139, 228, 195), 2)
@@ -92,24 +126,22 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         ret, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 60])
         return buf.tobytes() if ret else None
 
-    def decode_frame(self, frame: np.ndarray) -> Optional[str]:
+    def decode_frame(self, frame: Any) -> Optional[str]:
         """
-        Attempts to detect and decode an EAN-13, UPC, or 1D/2D barcode from a frame.
-        Applies a high-performance dual-engine pipeline:
-          1. pyzbar (highest recognition rate & angle tolerance for 1D grocery packaging)
-          2. cv2.barcode.BarcodeDetector (OpenCV fallback)
-          3. Contrast / Gaussian smoothing fallback for high-gloss kitchen reflections
+        Looks for a barcode inside a camera picture:
+        1. Converts the image to black-and-white for clearer contrast.
+        2. Tries reading the barcode with pyzbar (best for grocery packaging).
+        3. If not found, tries reading with OpenCV's barcode detector.
+        4. If kitchen light glare gets in the way, applies a slight blur and tries once more.
         """
-        if frame is None or frame.size == 0:
+        if not _HAS_CV2 or frame is None or frame.size == 0:
             return None
 
-        # Convert to grayscale if frame is in RGB/BGR
         if len(frame.shape) == 3:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         else:
             gray = frame
 
-        # Primary: pyzbar (standard retail 1D/2D decoder)
         if _HAS_PYZBAR:
             try:
                 results = pyzbar.decode(gray)
@@ -120,18 +152,17 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             except Exception as e:
                 logger.debug(f"pyzbar decode pass error: {e}")
 
-        # Secondary: OpenCV BarcodeDetector
-        try:
-            retval, decoded_info, decoded_type, points = self._detector.detectAndDecode(gray)
-            if retval and decoded_info:
-                for item in decoded_info:
-                    clean_code = str(item).strip()
-                    if clean_code:
-                        return clean_code
-        except Exception:
-            pass
+        if self._detector is not None:
+            try:
+                retval, decoded_info, decoded_type, points = self._detector.detectAndDecode(gray)
+                if retval and decoded_info:
+                    for item in decoded_info:
+                        clean_code = str(item).strip()
+                        if clean_code:
+                            return clean_code
+            except Exception:
+                pass
 
-        # Fallback: Mild Gaussian blur for packaging glare/reflections
         if _HAS_PYZBAR:
             try:
                 blurred = cv2.GaussianBlur(gray, (3, 3), 0)
@@ -146,11 +177,14 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         return None
 
     def _should_debounce(self, barcode: str) -> bool:
-        """Returns True if the barcode was already processed within the cooldown window."""
+        """
+        Checks if this exact barcode was already scanned within the last 2.5 seconds.
+        This stops the camera from adding the same item multiple times while the user
+        is still holding it in front of the lens.
+        """
         now = time.time()
         last_seen = self._recent_scans.get(barcode, 0.0)
-        
-        # Clean up stale entries older than 30 seconds
+
         stale_keys = [k for k, v in self._recent_scans.items() if now - v > 30.0]
         for k in stale_keys:
             del self._recent_scans[k]
@@ -162,13 +196,16 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         return False
 
     def _capture_loop(self) -> None:
-        """Continuous camera frame reading thread."""
+        """
+        Runs continuously in the background while the camera is turned on.
+        Captures a picture, saves a small version for the live screen preview,
+        and checks the picture for a barcode.
+        """
         logger.info("Initializing Picamera2 for barcode scanner...")
         try:
             import picamera2
             self._picam2 = picamera2.Picamera2()
 
-            # Configure Camera Module v3 stream with hardware sensor orientation transform
             transform = picamera2.libcamera.Transform(
                 vflip=1 if self.vflip else 0,
                 hflip=1 if self.hflip else 0,
@@ -179,11 +216,9 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             )
             self._picam2.configure(config)
             logger.info(f"Picamera2 initialized with hardware transform: vflip={self.vflip}, hflip={self.hflip}")
-            
-            # Start camera hardware
+
             self._picam2.start()
 
-            # Set Continuous Autofocus (AfMode = 2) for Camera Module v3 PDAF
             try:
                 self._picam2.set_controls({"AfMode": 2})
                 logger.info("Camera Module v3 Continuous Autofocus (PDAF) engaged.")
@@ -195,8 +230,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
 
             while self._is_running:
                 start_time = time.time()
-                
-                # Capture frame as numpy array
+
                 try:
                     frame = self._picam2.capture_array("main")
                 except Exception as cap_err:
@@ -208,26 +242,24 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                     time.sleep(0.05)
                     continue
 
-                # Store latest JPEG for live preview stream (downscaled for fast encode and minimal CPU)
-                try:
-                    small_frame = cv2.resize(frame, (640, 360), interpolation=cv2.INTER_LINEAR)
-                    ret, buf = cv2.imencode(".jpg", small_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
-                    if ret:
-                        with self._lock:
-                            self._latest_jpeg = buf.tobytes()
-                except Exception:
-                    pass
-                
-                # Non-blocking async decode so camera preview refreshes smoothly
+                if _HAS_CV2:
+                    try:
+                        small_frame = cv2.resize(frame, (640, 360), interpolation=cv2.INTER_LINEAR)
+                        ret, buf = cv2.imencode(".jpg", small_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
+                        if ret:
+                            with self._lock:
+                                self._latest_jpeg = buf.tobytes()
+                    except Exception:
+                        pass
+
                 if not self._is_decoding:
                     self._is_decoding = True
                     threading.Thread(
                         target=self._async_decode,
                         args=(frame.copy(),),
-                        daemon=True
+                        daemon=True,
                     ).start()
 
-                # Rate limiting to target FPS (e.g. 1 FPS)
                 elapsed = time.time() - start_time
                 sleep_time = interval - elapsed
                 if sleep_time > 0:
@@ -240,8 +272,11 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             self._is_running = False
             logger.info("Picamera2 capture loop stopped.")
 
-    def _async_decode(self, frame: np.ndarray) -> None:
-        """Asynchronously decodes barcodes from a frame copy to keep the capture loop at full frame rate."""
+    def _async_decode(self, frame: Any) -> None:
+        """
+        Reads the barcode from a picture in a separate background task so the
+        live camera video on the screen stays smooth.
+        """
         try:
             barcode = self.decode_frame(frame)
             if barcode:
@@ -260,7 +295,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             self._is_decoding = False
 
     def _cleanup_camera(self) -> None:
-        """Safely stops and closes the picamera2 instance."""
+        """Safely closes the connection to the physical Raspberry Pi camera."""
         if self._picam2:
             try:
                 self._picam2.stop()
@@ -273,7 +308,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             self._picam2 = None
 
     def start(self, on_scan: Callable[[str], None]) -> None:
-        """Start the background scanner thread."""
+        """Starts the background camera thread and links the function to call on each scan."""
         if self._is_running:
             logger.warning("Barcode scanner is already running.")
             return
@@ -284,7 +319,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         self._thread.start()
 
     def stop(self) -> None:
-        """Stop the background scanner thread."""
+        """Stops the background camera thread and frees the camera."""
         if not self._is_running:
             return
 
@@ -296,9 +331,13 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
 
 
 class MockBarcodeScanner(IBarcodeScanner):
-    """Mock scanner used for unit testing, CI pipelines, or development without camera hardware."""
+    """
+    Fake barcode scanner used for automated testing or when working on a laptop
+    without a physical Raspberry Pi camera attached.
+    """
 
     def __init__(self, debounce_seconds: float = 2.0):
+        """Sets up the test scanner with a short cooldown between identical scans."""
         self.debounce_seconds = debounce_seconds
         self._is_running = False
         self._on_scan_callback: Optional[Callable[[str], None]] = None
@@ -308,12 +347,16 @@ class MockBarcodeScanner(IBarcodeScanner):
 
     @property
     def is_running(self) -> bool:
+        """Returns True if the test scanner is turned on."""
         return self._is_running
 
     def get_latest_jpeg(self) -> Optional[bytes]:
+        """Returns a simple placeholder preview image when running in test mode."""
         with self._lock:
             if self._latest_jpeg is not None:
                 return self._latest_jpeg
+        if not _HAS_CV2:
+            return None
         img = np.zeros((360, 480, 3), dtype=np.uint8)
         img[:] = (56, 61, 59)
         cv2.rectangle(img, (80, 60), (400, 300), (139, 228, 195), 2)
@@ -322,11 +365,12 @@ class MockBarcodeScanner(IBarcodeScanner):
         ret, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 60])
         return buf.tobytes() if ret else None
 
-    def decode_frame(self, frame: np.ndarray) -> Optional[str]:
+    def decode_frame(self, frame: Any) -> Optional[str]:
+        """Returns None because the test scanner uses simulate_scan() instead of real photos."""
         return None
 
     def simulate_scan(self, barcode: str) -> bool:
-        """Inject a simulated barcode scan."""
+        """Pretends a barcode was just scanned by the camera (used in automated tests)."""
         if not self._is_running:
             logger.warning("Mock scanner is not running, scan ignored.")
             return False
@@ -343,20 +387,26 @@ class MockBarcodeScanner(IBarcodeScanner):
         return True
 
     def start(self, on_scan: Callable[[str], None]) -> None:
+        """Turns on the test scanner."""
         self._on_scan_callback = on_scan
         self._is_running = True
         logger.info("Mock barcode scanner started.")
 
     def stop(self) -> None:
+        """Turns off the test scanner."""
         self._is_running = False
         logger.info("Mock barcode scanner stopped.")
 
 
-# Singleton / Factory accessor
 _scanner_instance: Optional[IBarcodeScanner] = None
 
+
 def get_barcode_scanner(use_mock: bool = False) -> IBarcodeScanner:
-    """Provides a singleton instance of the barcode scanner service."""
+    """
+    Returns the active barcode scanner for the app.
+    Uses the real Raspberry Pi camera if available, or automatically falls back
+    to the test scanner if running on a computer without a camera.
+    """
     global _scanner_instance
     if _scanner_instance is None:
         if use_mock:
@@ -368,4 +418,3 @@ def get_barcode_scanner(use_mock: bool = False) -> IBarcodeScanner:
                 logger.warning(f"Could not initialize physical camera scanner ({e}). Falling back to Mock.")
                 _scanner_instance = MockBarcodeScanner()
     return _scanner_instance
-

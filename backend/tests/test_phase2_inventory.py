@@ -1,3 +1,15 @@
+"""
+Automated backend tests for GroceryPi.
+
+This file tests the core features of the backend using a temporary in-memory
+database so the real kitchen database is not changed:
+- Checking if the server is online.
+- Scanning known, unknown, and online Albert Heijn barcodes.
+- Checking that all 9 nutrition values are returned and can be used to sort items.
+- Calculating total pantry nutrition and shopping cart restock suggestions.
+- Testing the barcode scanner cooldown (debouncing) and modular service updates.
+"""
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -6,10 +18,10 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import ProductCatalog, InventoryItem, ItemCategory, PreferredStore, InventoryStatus
+from app.models import InventoryItem, InventoryStatus, ItemCategory, PreferredStore, ProductCatalog
 from app.services.scanner import MockBarcodeScanner
 
-# Use in-memory SQLite for fast, isolated test execution
+# Use a temporary in-memory SQLite database so tests run quickly and cleanly
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
@@ -21,6 +33,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 
 def override_get_db():
+    """Provides a temporary test database connection during automated tests."""
     db = TestingSessionLocal()
     try:
         yield db
@@ -34,11 +47,11 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def setup_database():
-    """Rebuilds tables and seeds initial test data before each test."""
+    """Creates fresh database tables and adds 2 sample products before each test runs."""
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
-    
-    # Seed 2 products with 9 nutritional fields in order
+
+    # Add 2 test products with all 9 European nutrition values
     p1 = ProductCatalog(
         barcode="8710400035541",
         name="Calvé Pindakaas",
@@ -76,7 +89,7 @@ def setup_database():
     db.add_all([p1, p2])
     db.commit()
 
-    # Seed 1 inventory item for p1
+    # Put 1 jar of peanut butter in the starting kitchen inventory
     inv = InventoryItem(product_id=p1.id, quantity=1, status=InventoryStatus.IN_STOCK)
     db.add(inv)
     db.commit()
@@ -88,6 +101,7 @@ def setup_database():
 
 
 def test_health_check():
+    """Checks that the main API endpoint responds and reports that the server is ok."""
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
@@ -96,7 +110,7 @@ def test_health_check():
 
 
 def test_scan_known_barcode_increments_inventory():
-    """Scanning an existing item logs scan and increments quantity."""
+    """Checks that scanning an item already in stock increases its quantity from 1 to 2."""
     response = client.post("/inventory/scan", json={"barcode": "8710400035541"})
     assert response.status_code == 200
     data = response.json()
@@ -107,7 +121,7 @@ def test_scan_known_barcode_increments_inventory():
 
 
 def test_scan_unknown_barcode():
-    """Scanning an unknown barcode returns UNKNOWN_BARCODE status without error."""
+    """Checks that scanning a test barcode that does not exist returns UNKNOWN_BARCODE safely."""
     response = client.post("/inventory/scan", json={"barcode": "9999999999999"})
     assert response.status_code == 200
     data = response.json()
@@ -117,27 +131,24 @@ def test_scan_unknown_barcode():
 
 
 def test_get_inventory_nutritional_fields_order():
-    """Inventory response includes all 9 nutritional fields in order."""
+    """Checks that the inventory list includes all 9 nutrition values for each product."""
     response = client.get("/inventory")
     assert response.status_code == 200
     items = response.json()
     assert len(items) >= 1
     p = items[0]["product"]
-    # Check all 9 fields exist
     fields = [
         "energy_kj", "energy_kcal", "fat_grams", "saturated_fat_grams",
-        "carbohydrate_grams", "sugar_grams", "fiber_grams", "protein_grams", "salt_grams"
+        "carbohydrate_grams", "sugar_grams", "fiber_grams", "protein_grams", "salt_grams",
     ]
     for f in fields:
         assert f in p
 
 
 def test_autosort_by_protein():
-    """Clicking a nutrition bar triggers autosorting (GET /inventory?sort_by=protein_grams)."""
-    # First, scan Kipfilet so both items are in inventory
+    """Checks that sorting the inventory by protein puts the highest-protein item first."""
     client.post("/inventory/scan", json={"barcode": "8718907456789"})
 
-    # Sort descending by protein (Kipfilet has 23.5g, Pindakaas has 21.0g)
     response = client.get("/inventory?sort_by=protein_grams&order=desc")
     assert response.status_code == 200
     items = response.json()
@@ -147,7 +158,7 @@ def test_autosort_by_protein():
 
 
 def test_nutrition_summary():
-    """Calculates aggregate macros across active stock."""
+    """Checks that the nutrition summary correctly adds up calories and protein in stock."""
     response = client.get("/inventory/nutrition/summary")
     assert response.status_code == 200
     data = response.json()
@@ -157,7 +168,7 @@ def test_nutrition_summary():
 
 
 def test_mock_scanner_service():
-    """Tests the decoupled scanner service interface, callback, and debouncing."""
+    """Checks that the scanner service reads barcodes and ignores accidental double-scans."""
     scans_received = []
 
     def on_scan(barcode):
@@ -167,17 +178,17 @@ def test_mock_scanner_service():
     scanner.start(on_scan)
     assert scanner.is_running is True
 
-    # First scan should succeed
+    # First scan should be accepted
     res1 = scanner.simulate_scan("8710400035541")
     assert res1 is True
     assert len(scans_received) == 1
 
-    # Immediate second scan of the same barcode should be debounced
+    # Immediate second scan of the same barcode should be ignored (debounced)
     res2 = scanner.simulate_scan("8710400035541")
     assert res2 is False
     assert len(scans_received) == 1
 
-    # Scan of different barcode should succeed immediately
+    # Scanning a different product barcode should work right away
     res3 = scanner.simulate_scan("8718907456789")
     assert res3 is True
     assert len(scans_received) == 2
@@ -187,18 +198,17 @@ def test_mock_scanner_service():
 
 
 def test_cart_replenishment_suggestions():
-    """Tests the smart supermarket queue suggestions and prediction intervals."""
+    """Checks that the shopping cart prediction engine creates store lists for AH and Jumbo."""
     res = client.get("/inventory/cart/suggestions")
     assert res.status_code == 200
     data = res.json()
     assert "queues" in data
     assert len(data["queues"]) >= 2
-    
+
     queue_ids = [q["id"] for q in data["queues"]]
     assert "AH" in queue_ids
     assert "Jumbo" in queue_ids
-    
-    # Check that item fields are populated
+
     ah_queue = next(q for q in data["queues"] if q["id"] == "AH")
     assert ah_queue["title"].startswith("AH ·")
     assert len(ah_queue["items"]) > 0
@@ -211,9 +221,8 @@ def test_cart_replenishment_suggestions():
 
 def test_ah_api_product_auto_resolution():
     """
-    Tests scanning an uncatalogued GTIN barcode (8710466269522):
-    Pulls metadata directly from Albert Heijn API, saves to ProductCatalog,
-    and increments inventory stock.
+    Checks that scanning a real barcode not yet in our local database looks up
+    the product from the Albert Heijn API, saves it, and adds 1 unit to stock.
     """
     res = client.post("/inventory/scan", json={"barcode": "8710466269522"})
     assert res.status_code == 200
@@ -224,4 +233,42 @@ def test_ah_api_product_auto_resolution():
     assert data["inventory_item"]["quantity"] >= 1
 
 
+def test_modular_services_and_interval_override_update():
+    """
+    Checks that the modular inventory and nutrition services work properly,
+    updating an item's custom restock days saves to the database, and the
+    camera scanner status endpoints respond as expected.
+    """
+    from app.clients.store_gateway import IStoreGateway
+    from app.services.ah_client import AHClient
+    from app.services.inventory.inventory import InventoryService, inventory_service
+    from app.services.nutrition.nutrition import NutritionService, nutrition_service
 
+    assert isinstance(inventory_service, InventoryService)
+    assert isinstance(nutrition_service, NutritionService)
+    assert issubclass(AHClient, IStoreGateway)
+
+    # Check that updating quantity, custom restock days, and dual-store works
+    inv_res = client.get("/inventory")
+    assert inv_res.status_code == 200
+    first_item = inv_res.json()[0]
+    item_id = first_item["id"]
+
+    patch_res = client.patch(
+        f"/inventory/{item_id}",
+        json={"quantity": 4, "manual_interval_override": 12.5, "is_dual_store": True},
+    )
+    assert patch_res.status_code == 200
+    updated = patch_res.json()
+    assert updated["quantity"] == 4
+    assert updated["manual_interval_override"] == 12.5
+    assert updated["is_dual_store"] is True
+
+    # Check the extracted camera scanner status endpoints
+    status_res = client.get("/scanner/status")
+    assert status_res.status_code == 200
+    assert "running" in status_res.json()
+
+    event_res = client.get("/scanner/latest-event")
+    assert event_res.status_code == 200
+    assert "scan_id" in event_res.json()
