@@ -36,13 +36,33 @@ export default function DashboardPage({
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedDiet, setSelectedDiet] = useState("All");
   const [sortByOption, setSortByOption] = useState("newest");
+  const [showDepleted, setShowDepleted] = useState(false);
 
   /**
-   * Filters the displayed items based on the search box, selected category tab,
-   * selected diet button, and chosen sort order.
+   * Counts how many items are currently depleted or synced to the cart (0 units)
+   * and hidden from the main dashboard view by default.
+   */
+  const depletedCount = useMemo(
+    () =>
+      items.filter(
+        (item) => item.status === "DEPLETED" || (item.quantity ?? 1) <= 0
+      ).length,
+    [items]
+  );
+
+  /**
+   * Filters the displayed items based on active stock status (hiding depleted/synced
+   * 0-unit items unless toggled on), search box, selected category tab, selected
+   * diet button, and chosen sort order.
    */
   const filteredItems = useMemo(() => {
     let result = items.filter((item) => {
+      const isDepleted =
+        item.status === "DEPLETED" || (item.quantity ?? 1) <= 0;
+      if (!showDepleted && isDepleted) {
+        return false;
+      }
+
       const p = item.product || {};
       const matchesSearch =
         searchQuery.trim() === "" ||
@@ -84,7 +104,7 @@ export default function DashboardPage({
     }
 
     return result;
-  }, [items, searchQuery, selectedCategory, selectedDiet, sortByOption]);
+  }, [items, searchQuery, selectedCategory, selectedDiet, sortByOption, showDepleted]);
 
   return (
     <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-6 pb-20 select-none">
@@ -266,8 +286,25 @@ export default function DashboardPage({
       </div>
 
       {/* Footer Info Row */}
-      <div className="flex items-center justify-between text-xs text-kioskGray mt-6 pt-3 border-t border-gray-300">
-        <span>{filteredItems.length} items · illustrative household · 14 Oct 2026</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-kioskGray mt-6 pt-3 border-t border-gray-300">
+        <div className="flex items-center gap-3">
+          <span>{filteredItems.length} stocked items shown</span>
+          {depletedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowDepleted((prev) => !prev)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                showDepleted
+                  ? "bg-gunmetal text-white border-gunmetal"
+                  : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {showDepleted
+                ? `Hide Depleted / Synced (${depletedCount})`
+                : `Show Depleted / Synced (${depletedCount})`}
+            </button>
+          )}
+        </div>
         {filteredItems.length > 2 && (
           <span className="font-medium text-gray-500 inline-flex items-center gap-1.5">
             <span>

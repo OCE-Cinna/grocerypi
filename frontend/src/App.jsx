@@ -315,7 +315,14 @@ export default function App() {
           />
         )}
 
-        {activeTab === "cart" && <CartPage />}
+        {activeTab === "cart" && (
+          <CartPage
+            onCartSynced={() => {
+              fetchInventory(activeSortNutrient);
+              fetchAuxData();
+            }}
+          />
+        )}
 
         {activeTab === "nutrition" && (
           <NutritionPage

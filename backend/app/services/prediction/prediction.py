@@ -70,7 +70,10 @@ class PredictionEngine:
             if not needs_replenish:
                 continue
 
-            if interval_ratio >= 1.0 or item.quantity == 0:
+            if item.status == models.InventoryStatus.DEPLETED or item.quantity == 0:
+                urgency = "high"
+                status_text = "synced / depleted · waiting to scan in"
+            elif interval_ratio >= 1.0:
                 urgency = "high"
                 status_text = "due now · replenish"
             elif interval_ratio >= 0.75:

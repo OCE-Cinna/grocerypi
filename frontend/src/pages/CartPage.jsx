@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { M3Cart as ShoppingCart, M3CheckCircle as CheckCircle2, M3Refresh as RefreshCw } from "../components/Material3Icons";
 import api from "../api/client";
 
-export default function CartPage() {
+export default function CartPage({ onCartSynced }) {
   const [storeQueues, setStoreQueues] = useState([]);
   const [activeQueueId, setActiveQueueId] = useState("AH");
   const [loading, setLoading] = useState(true);
@@ -87,13 +87,26 @@ export default function CartPage() {
   const currentQueue =
     storeQueues.find((q) => q.id === activeQueueId) || storeQueues[0] || { items: [] };
 
-  const handleSyncCart = () => {
+  /**
+   * Syncs the active store queue to the shopping cart and marks its recommended
+   * items as depleted (0 units) in the backend so they are removed visually from
+   * the active Dashboard while staying here in Cart Suggestions until scanned IN again.
+   */
+  const handleSyncCart = async () => {
     setSyncing(true);
-    setTimeout(() => {
+    try {
+      await api.post(`/inventory/cart/sync/${activeQueueId}`);
+      await fetchCartSuggestions();
+      if (onCartSynced) {
+        onCartSynced();
+      }
+    } catch (err) {
+      console.error("Failed to sync cart queue:", err);
+    } finally {
       setSyncing(false);
       setSynced(true);
       setTimeout(() => setSynced(false), 3000);
-    }, 800);
+    }
   };
 
   return (
@@ -177,9 +190,17 @@ export default function CartPage() {
                     {item.store}
                   </span>
                   <div>
-                    <h3 className="text-xl font-bold text-gunmetal tracking-tight">
-                      {cleanName}
-                    </h3>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h3 className="text-xl font-bold text-gunmetal tracking-tight">
+                        {cleanName}
+                      </h3>
+                      {(item.current_quantity === 0 ||
+                        item.subtext?.includes("synced / depleted")) && (
+                        <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-limeCream/40 text-gunmetal border border-limeCream-dark/40">
+                          Synced · waiting to scan in
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-kioskGray mt-0.5 font-normal">
                       {displayBrand && <span className="font-medium text-gray-600">{displayBrand} · </span>}
                       {item.subtext}

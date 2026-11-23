@@ -390,3 +390,90 @@ def test_barcode_checksum_validation_and_dutch_english_off_selection():
     }
     assert select_dutch_or_english_name(off_foreign_only) is None
 
+
+def test_checkin_midnight_batch_auto_depletion_and_cart_sync():
+    """
+    Tests Epic 3.4 ("Items IN" Depletion, Midnight Replenishment & Cart Sync Lifecycle):
+    1. User Story 3.4.1: Multiple scans on the same calendar day increment quantity
+       (1 -> 2 -> 3), while a scan on a new calendar day (after 00:00 midnight)
+       treats the previous batch as finished, updates restock_interval_days, and
+       resets quantity to 1 for the new batch.
+    2. User Story 3.4.2: Automatic depletion marks items past their restock interval
+       (or 30-day shelf cap) as DEPLETED (quantity = 0) while preserving their
+       learned restock_interval_days.
+    3. User Story 3.4.3: POST /inventory/cart/sync/{store} marks recommended items
+       for that store as DEPLETED (quantity = 0) so they leave the active Dashboard
+       visually while staying in Cart Suggestions until physically scanned IN again.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    db = TestingSessionLocal()
+    try:
+        milk = ProductCatalog(
+            barcode="8710400000013",
+            name="Halfvolle Melk",
+            category=ItemCategory.FOOD,
+            preferred_store=PreferredStore.AH,
+        )
+        db.add(milk)
+        db.commit()
+        db.refresh(milk)
+
+        # 1. First scan creates 1 unit in stock
+        item = InventoryRepository.upsert_stock_on_scan(db, milk.id)
+        assert item.quantity == 1
+        assert item.status == InventoryStatus.IN_STOCK
+
+        # Second scan on the SAME calendar day increments batch count to 2
+        item = InventoryRepository.upsert_stock_on_scan(db, milk.id)
+        assert item.quantity == 2
+
+        # Simulate 5 days passing (across midnight into a new calendar day)
+        five_days_ago = datetime.now(timezone.utc) - timedelta(days=5)
+        item.last_restocked_at = five_days_ago
+        item.restock_interval_days = 7.0
+        db.commit()
+
+        # Scanning on the new calendar day resets quantity to 1 (new batch) and updates interval
+        item = InventoryRepository.upsert_stock_on_scan(db, milk.id)
+        assert item.quantity == 1
+        assert item.status == InventoryStatus.IN_STOCK
+        # Rolling average: 0.7 * 7.0 + 0.3 * 5.0 = 6.4 days
+        assert 6.0 <= item.restock_interval_days <= 6.6
+
+        # 2. Automatic depletion after restock interval (or 30-day cap) elapses
+        item.last_restocked_at = datetime.now(timezone.utc) - timedelta(days=8)
+        db.commit()
+
+        depleted_count = InventoryRepository.apply_auto_depletion(db)
+        assert depleted_count == 1
+        db.refresh(item)
+        assert item.status == InventoryStatus.DEPLETED
+        assert item.quantity == 0
+        # Learned interval is preserved even when depleted
+        assert 6.0 <= item.restock_interval_days <= 6.6
+
+        # 3. Scanning the depleted item back in replenishes it to quantity = 1
+        item = InventoryRepository.upsert_stock_on_scan(db, milk.id)
+        assert item.quantity == 1
+        assert item.status == InventoryStatus.IN_STOCK
+
+        # 4. Syncing the AH Cart queue marks recommended AH items as DEPLETED (0 units)
+        # while keeping them in Cart Suggestions until scanned IN again
+        sync_res = client.post("/inventory/cart/sync/AH")
+        assert sync_res.status_code == 200
+        assert sync_res.json()["synced_count"] >= 1
+
+        db.refresh(item)
+        assert item.status == InventoryStatus.DEPLETED
+        assert item.quantity == 0
+
+        suggestions_res = client.get("/inventory/cart/suggestions")
+        assert suggestions_res.status_code == 200
+        ah_queue = next(q for q in suggestions_res.json()["queues"] if q["id"] == "AH")
+        assert any(i["name"] == "Halfvolle Melk" for i in ah_queue["items"])
+        assert any("synced / depleted" in i["subtext"] for i in ah_queue["items"])
+    finally:
+        db.close()
+
+

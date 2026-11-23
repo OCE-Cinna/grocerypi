@@ -2,11 +2,14 @@
 Database helper (repository) for Kitchen Inventory and Scan Logs.
 
 This file handles all database operations for the items currently stored in the
-kitchen (adding stock on scan, filtering by category or diet, sorting by
-nutrients, changing quantities, deleting items, and saving scan history).
+kitchen:
+- Adding stock on scan with same-day batching vs. new-day (midnight 00:00) reset.
+- Automatically depleting items once they reach their predicted interval or 30-day cap.
+- Filtering by category or diet, sorting by nutrients, changing quantities,
+  deleting items, and saving scan history.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session, joinedload
@@ -64,28 +67,109 @@ class InventoryRepository:
         cls,
         db: Session,
         product_id: int,
-        now_utc: datetime,
+        now_utc: Optional[datetime] = None,
         default_interval_days: float = 7.0,
     ) -> InventoryItem:
         """
-        Adds +1 to the product's quantity if it is already in stock, or creates
-        a new inventory row with quantity 1 if it was not in the kitchen yet.
+        Updates stock when an item is scanned IN under the 'Items IN' lifecycle:
+        - If the item was already scanned earlier on the SAME calendar day (before
+          00:00 midnight) and is currently IN_STOCK, adds +1 to quantity so the
+          user can scan multiple units bought in the same shopping trip.
+        - If the item is scanned on a NEW calendar day (after 00:00 midnight) or
+          was previously DEPLETED, treats the old batch as used/finished, updates
+          the learned restock interval days from the time passed, and resets
+          quantity to 1 for the new batch.
         """
+        raw_now = now_utc or datetime.now(timezone.utc)
+        cur_now = raw_now if raw_now.tzinfo is not None else raw_now.replace(tzinfo=timezone.utc)
         inv_item = cls.get_by_product_id(db, product_id)
+
         if inv_item:
-            inv_item.quantity += 1
-            inv_item.last_restocked_at = now_utc
+            last_dt = inv_item.last_restocked_at
+            if last_dt and last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+
+            # Compare local calendar dates so the 24h cycle resets cleanly at 00:00 midnight
+            same_calendar_day = (
+                last_dt is not None
+                and last_dt.astimezone().date() == cur_now.astimezone().date()
+            )
+
+            if same_calendar_day and inv_item.status == InventoryStatus.IN_STOCK and inv_item.quantity > 0:
+                inv_item.quantity += 1
+            else:
+                # New calendar day or previously depleted: learn from elapsed days and reset batch to 1
+                if last_dt is not None:
+                    days_elapsed = max(0.0, (cur_now - last_dt).total_seconds() / 86400.0)
+                    if days_elapsed >= 1.0:
+                        observed_interval = min(30.0, max(1.0, days_elapsed))
+                        old_interval = inv_item.restock_interval_days or default_interval_days
+                        inv_item.restock_interval_days = round(
+                            0.7 * old_interval + 0.3 * observed_interval, 1
+                        )
+                inv_item.quantity = 1
+
+            inv_item.last_restocked_at = cur_now
             inv_item.status = InventoryStatus.IN_STOCK
         else:
             inv_item = InventoryItem(
                 product_id=product_id,
                 quantity=1,
                 status=InventoryStatus.IN_STOCK,
-                last_restocked_at=now_utc,
+                last_restocked_at=cur_now,
                 restock_interval_days=default_interval_days,
             )
             db.add(inv_item)
+        db.flush()
         return inv_item
+
+    @classmethod
+    def apply_auto_depletion(
+        cls,
+        db: Session,
+        now_utc: Optional[datetime] = None,
+        max_shelf_days: float = 30.0,
+    ) -> int:
+        """
+        Automatically marks stocked items as DEPLETED (quantity = 0) once they reach
+        their predicted restock interval or the 30-day maximum shelf limit.
+        The item's learned restock_interval_days stays saved in the database while
+        the item is visually hidden from the active Dashboard and moved to Cart Suggestions.
+        """
+        cur_now = now_utc or datetime.now(timezone.utc)
+        if cur_now.tzinfo is None:
+            cur_now = cur_now.replace(tzinfo=timezone.utc)
+
+        active_items = (
+            db.query(InventoryItem)
+            .filter(InventoryItem.status == InventoryStatus.IN_STOCK)
+            .all()
+        )
+
+        depleted_count = 0
+        for item in active_items:
+            last_dt = item.last_restocked_at
+            if not last_dt:
+                continue
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+
+            days_elapsed = max(0.0, (cur_now - last_dt).total_seconds() / 86400.0)
+            effective_interval = (
+                item.manual_interval_override
+                if item.manual_interval_override is not None
+                else item.restock_interval_days
+            )
+            cutoff_days = min(max_shelf_days, max(1.0, effective_interval or 7.0))
+
+            if days_elapsed >= cutoff_days:
+                item.status = InventoryStatus.DEPLETED
+                item.quantity = 0
+                depleted_count += 1
+
+        if depleted_count > 0:
+            db.commit()
+        return depleted_count
 
     @staticmethod
     def log_scan(

@@ -235,7 +235,11 @@ class InventoryService:
         sort_by: Optional[str] = None,
         order: str = "desc",
     ) -> List[InventoryItem]:
-        """Returns the list of kitchen inventory items filtered by category, diet, or sorted by nutrient."""
+        """
+        First checks if any items have reached their predicted depletion interval
+        or 30-day limit, then returns the list of kitchen inventory items.
+        """
+        self.inventory_repo.apply_auto_depletion(db)
         return self.inventory_repo.list_filtered(
             db=db,
             category=category,
@@ -247,6 +251,45 @@ class InventoryService:
             sort_by=sort_by,
             order=order,
         )
+
+    def sync_store_cart(self, db: Session, store: str) -> Dict[str, Any]:
+        """
+        Marks all items currently recommended for a supermarket queue (AH, Jumbo,
+        or Lidl) as DEPLETED (quantity = 0).
+        This visually removes them from the active kitchen Dashboard right away
+        while keeping their learned restock interval in the database and keeping
+        them in Cart Suggestions until they are physically scanned IN again.
+        """
+        from app.services.prediction.prediction import prediction_engine
+
+        suggestions = prediction_engine.get_cart_replenishment_suggestions(db)
+        target_store = store.strip().upper()
+        matched_queue = next(
+            (q for q in suggestions.queues if q.id.upper() == target_store),
+            None,
+        )
+        if not matched_queue:
+            raise HTTPException(status_code=404, detail=f"Store queue '{store}' not found.")
+
+        synced_ids: List[int] = []
+        for sug_item in matched_queue.items:
+            inv_item = self.inventory_repo.get_by_id(db, sug_item.id)
+            if inv_item:
+                inv_item.status = InventoryStatus.DEPLETED
+                inv_item.quantity = 0
+                synced_ids.append(inv_item.id)
+
+        db.commit()
+        return {
+            "status": "synced",
+            "store": matched_queue.id,
+            "synced_count": len(synced_ids),
+            "synced_item_ids": synced_ids,
+            "message": (
+                f"Synced {len(synced_ids)} items to {matched_queue.id} cart. "
+                "Items are now hidden from the active Dashboard until scanned in again."
+            ),
+        }
 
     def update_item(self, db: Session, item_id: int, payload: InventoryItemUpdate) -> InventoryItem:
         """Changes an inventory item's quantity, status, or custom restock days, or returns 404 if missing."""

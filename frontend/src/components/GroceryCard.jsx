@@ -77,9 +77,16 @@ export default function GroceryCard({
 
   const effectiveInterval =
     item.manual_interval_override ?? item.restock_interval_days;
+  const isDepleted = item.status === "DEPLETED" || qty <= 0;
 
   return (
-    <div className="bg-white border border-gray-300/80 rounded-2xl shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-5 items-stretch transition-shadow hover:shadow-sm">
+    <div
+      className={`border rounded-2xl shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-5 items-stretch transition-shadow hover:shadow-sm ${
+        isDepleted
+          ? "bg-gray-50/90 border-gray-300 opacity-80"
+          : "bg-white border-gray-300/80"
+      }`}
+    >
       {/* Left Details Column (Spans Columns 1–3) */}
       <div className="md:col-span-3 p-5 sm:p-6 flex flex-col justify-center">
         <div className="flex items-center justify-between gap-3">
@@ -94,6 +101,12 @@ export default function GroceryCard({
             <h3 className="text-xl sm:text-2xl font-bold text-gunmetal tracking-tight leading-snug truncate">
               {cleanName}
             </h3>
+
+            {isDepleted && (
+              <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
+                Depleted · In Cart
+              </span>
+            )}
 
             {renderNutrientBadge()}
           </div>

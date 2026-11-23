@@ -79,6 +79,15 @@ def get_cart_suggestions(db: Session = Depends(get_db)):
     return prediction_engine.get_cart_replenishment_suggestions(db)
 
 
+@router.post("/cart/sync/{store}", status_code=status.HTTP_200_OK)
+def sync_store_cart(store: str, db: Session = Depends(get_db)):
+    """
+    Syncs the recommended items for a store (AH, Jumbo, or Lidl) to the shopping
+    cart and removes them visually from the active kitchen Dashboard until scanned in again.
+    """
+    return inventory_service.sync_store_cart(db, store)
+
+
 @router.post("/sync/ah", status_code=status.HTTP_200_OK)
 def trigger_ah_invoice_sync():
     """Reads saved Albert Heijn receipts to update product purchase history and predictions."""
