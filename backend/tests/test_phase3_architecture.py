@@ -539,6 +539,28 @@ def test_checkin_midnight_batch_auto_depletion_and_cart_sync():
         assert frozen_inv.quantity == 1
         assert soap_inv.status == InventoryStatus.IN_STOCK
         assert soap_inv.quantity == 1
+
+        # 6. Epic 4.1: Polymorphic IStoreGateway implementations & OFF Store Auto-Detection
+        from app.clients.ah_gateway import AHStoreGateway, JumboStoreGateway
+        from app.clients.off_client import OpenFoodFactsClient
+        from app.services.ah_client import infer_preferred_store_from_off
+
+        assert issubclass(AHStoreGateway, IStoreGateway)
+        assert issubclass(JumboStoreGateway, IStoreGateway)
+        assert issubclass(OpenFoodFactsClient, IStoreGateway)
+
+        assert (
+            infer_preferred_store_from_off({"brands": "Milbona", "stores_tags": []}, "Milbona")
+            == PreferredStore.LIDL
+        )
+        assert (
+            infer_preferred_store_from_off({"brands": "Jumbo", "stores": "Jumbo"}, "Jumbo")
+            == PreferredStore.JUMBO
+        )
+        ah_gw = AHStoreGateway()
+        sync_payload = ah_gw.sync_cart([{"name": "Halfvolle Melk"}])
+        assert sync_payload["store"] == "AH"
+        assert sync_payload["synced_count"] == 1
     finally:
         db.close()
 

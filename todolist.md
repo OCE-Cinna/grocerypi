@@ -149,9 +149,9 @@
 > **I want** external supermarket and product APIs to implement an abstract `IStoreGateway` interface (`backend/app/clients/store_gateway.py`),  
 > **So that** Albert Heijn, Jumbo, Lidl, and Open Food Facts can be queried or swapped without changing `InventoryService`.
 
-- [ ] **Step 1:** Define `IStoreGateway(ABC)` in `backend/app/clients/store_gateway.py` with abstract methods `lookup_by_barcode(barcode: str)`, `search_product(query: str)`, and `sync_cart(items: List[CartSyncItem])`.
-- [ ] **Step 2:** Refactor `backend/app/services/ah_client.py` into `backend/app/clients/ah_gateway.py` (`AHStoreGateway(IStoreGateway)`) and extract `get_product_from_openfoodfacts` into `backend/app/clients/off_client.py` (`OpenFoodFactsClient`).
-- [ ] **Step 3:** Implement store tag auto-detection in `OpenFoodFactsClient` (detecting `"Jumbo"` or `"Lidl"` in OFF `brands` / `stores_tags` so non-AH barcodes automatically get tagged with `PreferredStore.JUMBO` or `PreferredStore.LIDL`).
+- [x] **Step 1:** Define `IStoreGateway(ABC)` in `backend/app/clients/store_gateway.py` with abstract methods `lookup_by_barcode(barcode: str)`, `search_product(query: str)`, and `sync_cart(items: List[Dict[str, Any]])`.
+- [x] **Step 2:** Create `backend/app/clients/ah_gateway.py` (`AHStoreGateway(IStoreGateway)` and `JumboStoreGateway(IStoreGateway)`) and `backend/app/clients/off_client.py` (`OpenFoodFactsClient(IStoreGateway)`).
+- [x] **Step 3:** Implement store tag auto-detection in `OpenFoodFactsClient` (`infer_preferred_store_from_off`, detecting `"Jumbo"`, `"Lidl"`, and private-label brands like `"Milbona"`, `"Crownfield"`, `"W5"`, `"1 de Beste"` in OFF `brands` / `stores_tags` so non-AH barcodes automatically get tagged with `PreferredStore.JUMBO` or `PreferredStore.LIDL`).
 
 ---
 

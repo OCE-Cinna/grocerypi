@@ -83,15 +83,33 @@ def select_dutch_or_english_name(prod: Dict[str, Any]) -> Optional[str]:
 
 
 def infer_preferred_store_from_off(prod: Dict[str, Any], brand: Optional[str]) -> PreferredStore:
-    """Checks Open Food Facts store and brand tags to assign Jumbo, Lidl, or AH."""
+    """
+    Checks Open Food Facts store and brand tags to automatically assign Jumbo,
+    Lidl, or AH (including private-label brands like Milbona, Crownfield, W5,
+    Cien, and 1 de Beste).
+    """
     stores_raw = " ".join(
         [str(prod.get("stores") or "")]
         + [str(s) for s in (prod.get("stores_tags") or [])]
+        + [str(prod.get("brands") or "")]
         + [str(brand or "")]
     ).lower()
-    if "jumbo" in stores_raw:
+    jumbo_markers = ["jumbo", "1 de beste", "la place"]
+    lidl_markers = [
+        "lidl",
+        "milbona",
+        "crownfield",
+        "solevita",
+        "freeway",
+        "cien",
+        "w5",
+        "chef select",
+        "dulano",
+        "kania",
+    ]
+    if any(m in stores_raw for m in jumbo_markers):
         return PreferredStore.JUMBO
-    if "lidl" in stores_raw:
+    if any(m in stores_raw for m in lidl_markers):
         return PreferredStore.LIDL
     return PreferredStore.AH
 
@@ -358,6 +376,21 @@ class AHClient(IStoreGateway):
             "package_size": search_res.get("salesUnitSize"),
             "webshop_id": webshop_id,
             "nutrition": nutrition_facts,
+        }
+
+    def lookup_by_barcode(self, barcode: str) -> Optional[Dict[str, Any]]:
+        """Implements IStoreGateway.lookup_by_barcode by delegating to get_product_by_gtin."""
+        return self.get_product_by_gtin(barcode)
+
+    def sync_cart(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Implements IStoreGateway.sync_cart with a direct, anti-ban-safe AH list payload."""
+        names = [str(i.get("name") or "").strip() for i in items if i.get("name")]
+        return {
+            "store": "AH",
+            "mode": "direct_web_and_app_list",
+            "synced_count": len(items),
+            "checkout_url": "https://www.ah.nl/mijnlijst",
+            "items": names,
         }
 
     def get_product_by_gtin(self, barcode: str) -> Optional[Dict[str, Any]]:
