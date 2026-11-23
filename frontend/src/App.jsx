@@ -242,14 +242,18 @@ export default function App() {
   };
 
   /**
-   * Refreshes and restarts the application by resetting to the Dashboard,
-   * re-fetching database records, and reloading the browser page.
+   * Refreshes and restarts the application by pulling the latest GitHub updates,
+   * resetting to the Dashboard, re-fetching database records, and reloading the page.
    */
   const handleRestartApp = async () => {
     setIsSystemModalOpen(false);
     setActiveTab("dashboard");
     setActiveSortNutrient(null);
-    await Promise.allSettled([fetchInventory(null), fetchAuxData()]);
+    await Promise.allSettled([
+      api.post("/system/git-pull"),
+      fetchInventory(null),
+      fetchAuxData(),
+    ]);
     window.location.reload();
   };
 
