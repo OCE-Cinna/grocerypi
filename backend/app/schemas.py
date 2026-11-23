@@ -124,7 +124,7 @@ class NutritionProfile(BaseModel):
 
 class ProductCatalogBase(BaseModel):
     """Shared fields for any product in the catalog, including barcode, store, and nutrition."""
-    barcode: str = Field(..., min_length=3, max_length=32, description="Product barcode number")
+    barcode: str = Field(..., min_length=1, max_length=32, description="Product barcode number")
     name: str = Field(..., min_length=1, max_length=150)
     brand: Optional[str] = Field(None, max_length=100)
     category: ItemCategory = ItemCategory.FOOD
