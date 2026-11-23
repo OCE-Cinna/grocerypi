@@ -132,7 +132,7 @@ export default function DashboardPage({
         <div className="md:col-span-3 flex flex-col justify-between">
           <div>
             <h2 className="text-3xl sm:text-[40px] font-extrabold text-gunmetal tracking-tight leading-tight">
-              Your kitchen, stocked.
+              Scan items in inventory.
             </h2>
             <p className="text-base text-kioskGray mt-1 font-normal">
               Scan items in. Use + / – for corrections only.
@@ -172,18 +172,16 @@ export default function DashboardPage({
               ? "Open live barcode scanner"
               : "Barcode scanning is only enabled on the Raspberry Pi camera kiosk"
           }
-          className={`md:col-span-2 w-full min-h-[104px] md:min-h-[136px] rounded-2xl font-bold flex flex-col items-center justify-center gap-1.5 transition-all shadow-md ${
-            canScan
+          className={`md:col-span-2 w-full min-h-[104px] md:min-h-[136px] rounded-2xl font-bold flex flex-col items-center justify-center gap-1.5 transition-all shadow-md ${canScan
               ? "bg-gunmetal hover:bg-gunmetal-dark text-white active:scale-98 cursor-pointer"
               : "bg-gray-300 text-gray-600 cursor-not-allowed opacity-85"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3.5 text-2xl">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center">
               <FigmaBarcode
-                className={`w-8 h-8 ${
-                  canScan ? "fill-[#F7F4F2]" : "fill-gray-600"
-                }`}
+                className={`w-8 h-8 ${canScan ? "fill-[#F7F4F2]" : "fill-gray-600"
+                  }`}
               />
             </div>
             <span>Scan New Item</span>
@@ -204,11 +202,10 @@ export default function DashboardPage({
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`h-[64px] rounded-2xl font-bold text-lg transition-all flex items-center justify-center active:scale-98 cursor-pointer ${
-                isActive
+              className={`h-[64px] rounded-2xl font-bold text-lg transition-all flex items-center justify-center active:scale-98 cursor-pointer ${isActive
                   ? "bg-gunmetal text-white shadow-sm"
                   : "bg-white text-gunmetal border-2 border-gray-300/80 hover:bg-gray-50"
-              }`}
+                }`}
             >
               {cat}
             </button>
@@ -226,11 +223,10 @@ export default function DashboardPage({
             </span>
             <button
               onClick={() => setSelectedDiet("All")}
-              className={`flex-1 h-11 px-3 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${
-                selectedDiet === "All"
+              className={`flex-1 h-11 px-3 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${selectedDiet === "All"
                   ? "bg-gunmetal text-white border-gunmetal shadow-xs"
                   : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
-              }`}
+                }`}
             >
               All Diets
             </button>
@@ -239,11 +235,10 @@ export default function DashboardPage({
           {/* Column 2: Vegetarian button (Directly under 'Food') */}
           <button
             onClick={() => setSelectedDiet("Vegetarian")}
-            className={`w-full h-11 px-4 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${
-              selectedDiet === "Vegetarian"
+            className={`w-full h-11 px-4 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${selectedDiet === "Vegetarian"
                 ? "bg-gunmetal text-white border-gunmetal shadow-xs"
                 : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
-            }`}
+              }`}
           >
             Vegetarian
           </button>
@@ -251,11 +246,10 @@ export default function DashboardPage({
           {/* Column 3: Vegan button (Directly under 'Pets') */}
           <button
             onClick={() => setSelectedDiet("Vegan")}
-            className={`w-full h-11 px-4 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${
-              selectedDiet === "Vegan"
+            className={`w-full h-11 px-4 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${selectedDiet === "Vegan"
                 ? "bg-gunmetal text-white border-gunmetal shadow-xs"
                 : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
-            }`}
+              }`}
           >
             Vegan
           </button>
@@ -382,11 +376,10 @@ export default function DashboardPage({
             <button
               type="button"
               onClick={() => setShowDepleted((prev) => !prev)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                showDepleted
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${showDepleted
                   ? "bg-gunmetal text-white border-gunmetal"
                   : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
-              }`}
+                }`}
             >
               {showDepleted
                 ? `Hide Depleted / Synced (${depletedCount})`
