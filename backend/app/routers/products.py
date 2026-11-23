@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.db.repositories.product_repository import ProductRepository
 from app.models import ItemCategory, PreferredStore
-from app.schemas import ProductCatalogCreate, ProductCatalogOut
+from app.schemas import ProductCatalogCreate, ProductCatalogOut, ProductCatalogUpdate
 
 router = APIRouter(prefix="/products", tags=["Product Catalog"])
 
@@ -57,3 +57,16 @@ def create_product(payload: ProductCatalogCreate, db: Session = Depends(get_db))
             detail=f"Product with barcode '{payload.barcode}' already exists in catalog.",
         )
     return ProductRepository.create(db, payload)
+
+
+@router.patch("/{barcode}", response_model=ProductCatalogOut)
+def update_product(barcode: str, payload: ProductCatalogUpdate, db: Session = Depends(get_db)):
+    """Updates a product's name, package size, or preferred supermarket by its barcode."""
+    product = ProductRepository.get_by_barcode(db, barcode)
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with barcode '{barcode}' not found in catalog.",
+        )
+    return ProductRepository.update(db, product, payload)
+

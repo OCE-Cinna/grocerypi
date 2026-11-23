@@ -278,7 +278,7 @@ def test_products_scanner_and_auth_endpoints():
     assert me_res.status_code == 200
     assert me_res.json()["username"] == "cinna"
 
-    # 3. Create and fetch a product via /products endpoints
+    # 3. Create, fetch, and edit a product via /products endpoints
     prod_res = client.post(
         "/products",
         json={
@@ -293,6 +293,19 @@ def test_products_scanner_and_auth_endpoints():
     get_prod = client.get("/products/8710000000401")
     assert get_prod.status_code == 200
     assert get_prod.json()["name"] == "Biologische Eieren"
+
+    patch_prod = client.patch(
+        "/products/8710000000401",
+        json={
+            "name": "Vrije Uitloop Eieren",
+            "package_size": "12 pack",
+            "preferred_store": "Jumbo",
+        },
+    )
+    assert patch_prod.status_code == 200
+    assert patch_prod.json()["name"] == "Vrije Uitloop Eieren"
+    assert patch_prod.json()["package_size"] == "12 pack"
+    assert patch_prod.json()["preferred_store"] == "Jumbo"
 
     # 4. Check /scanner status and start/stop routes
     assert issubclass(AHClient, IStoreGateway)

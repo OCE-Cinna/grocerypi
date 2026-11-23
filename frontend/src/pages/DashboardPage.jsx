@@ -1,3 +1,16 @@
+/**
+ * Main Inventory Dashboard Page for GroceryPi.
+ *
+ * Built around a shared 5-column vertical grid so elements across every row
+ * line up cleanly with each other:
+ * - Row 1 (Hero): Title + Search bar span Columns 1–3; 'Scan New Item' button spans Columns 4–5.
+ * - Row 2 (Categories): 5 equal buttons (All, Food, Pets, Household, Hygiene) in Columns 1–5.
+ * - Row 3 (Diet & Sort): 'DIET: All Diets' in Column 1, 'Vegetarian' in Column 2,
+ *   'Vegan' in Column 3, and 'SORT BY: [Dropdown]' across Columns 4–5.
+ * - Row 4 (Inventory Cards): Left item details span Columns 1–3; right action
+ *   buttons (-, units, +, Edit, Delete) align under Columns 4–5.
+ */
+
 import React, { useState, useMemo } from "react";
 import GroceryCard from "../components/GroceryCard";
 import {
@@ -24,7 +37,10 @@ export default function DashboardPage({
   const [selectedDiet, setSelectedDiet] = useState("All");
   const [sortByOption, setSortByOption] = useState("newest");
 
-  // Filter items by category, search term, and dietary requirements
+  /**
+   * Filters the displayed items based on the search box, selected category tab,
+   * selected diet button, and chosen sort order.
+   */
   const filteredItems = useMemo(() => {
     let result = items.filter((item) => {
       const p = item.product || {};
@@ -50,7 +66,6 @@ export default function DashboardPage({
       return matchesSearch && matchesCategory && matchesDiet;
     });
 
-    // Handle sort options
     if (sortByOption === "nutriscore") {
       const nsRank = { A: 1, B: 2, C: 3, D: 4, E: 5 };
       result.sort((a, b) => {
@@ -59,35 +74,41 @@ export default function DashboardPage({
         return rA - rB;
       });
     } else if (sortByOption === "protein") {
-      result.sort((a, b) => (b.product?.protein_grams || 0) - (a.product?.protein_grams || 0));
+      result.sort(
+        (a, b) => (b.product?.protein_grams || 0) - (a.product?.protein_grams || 0)
+      );
     } else if (sortByOption === "fiber") {
-      result.sort((a, b) => (b.product?.fiber_grams || 0) - (a.product?.fiber_grams || 0));
+      result.sort(
+        (a, b) => (b.product?.fiber_grams || 0) - (a.product?.fiber_grams || 0)
+      );
     }
 
     return result;
   }, [items, searchQuery, selectedCategory, selectedDiet, sortByOption]);
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 pb-20 select-none">
-      {/* Top Header Row: Left (Title + Subtitle + Search) & Right (Scan New Item) */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">
-        <div className="flex-1">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gunmetal tracking-tight">
-            Your kitchen, stocked.
-          </h2>
-          <p className="text-base text-kioskGray mt-1.5 font-normal">
-            Scan items in. Use + / – for corrections only.
-          </p>
+    <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-6 pb-20 select-none">
+      {/* Row 1: 5-Column Hero Grid (Cols 1-3: Title + Search | Cols 4-5: Scan New Item) */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 items-stretch mb-5">
+        <div className="md:col-span-3 flex flex-col justify-between">
+          <div>
+            <h2 className="text-3xl sm:text-[40px] font-extrabold text-gunmetal tracking-tight leading-tight">
+              Your kitchen, stocked.
+            </h2>
+            <p className="text-base text-kioskGray mt-1 font-normal">
+              Scan items in. Use + / – for corrections only.
+            </p>
+          </div>
 
-          {/* Search Bar (58px high) */}
-          <div className="relative mt-4">
+          {/* Search Bar (Spans exact width of Columns 1–3) */}
+          <div className="relative mt-3.5">
             <FigmaSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 stroke-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search inventory"
-              className="w-full h-[58px] pl-12 pr-4 bg-white rounded-2xl border border-gray-300 focus:border-gunmetal text-base text-gunmetal placeholder-gray-400 outline-none transition-all shadow-xs"
+              className="w-full h-[56px] pl-12 pr-10 bg-white rounded-2xl border border-gray-300 focus:border-gunmetal text-base text-gunmetal placeholder-gray-400 outline-none transition-all shadow-xs"
             />
             {searchQuery && (
               <button
@@ -100,10 +121,10 @@ export default function DashboardPage({
           </div>
         </div>
 
-        {/* Primary Action Touch Button (+15% larger: 368 × 133 px on desktop) */}
+        {/* Primary Action Touch Button (Spans exact width of Columns 4–5) */}
         <button
           onClick={onOpenScanModal}
-          className="w-full md:w-[368px] h-[104px] md:h-[133px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-2xl flex items-center justify-center gap-4 transition-all active:scale-98 shadow-md shrink-0 cursor-pointer"
+          className="md:col-span-2 w-full min-h-[104px] md:min-h-[136px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-2xl flex items-center justify-center gap-4 transition-all active:scale-98 shadow-md cursor-pointer"
         >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center">
             <FigmaBarcode className="w-8 h-8 fill-[#F7F4F2]" />
@@ -112,15 +133,15 @@ export default function DashboardPage({
         </button>
       </div>
 
-      {/* Quick-Filter Tab Bar (+15% larger: 69px high) */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mb-6">
+      {/* Row 2: 5-Column Category Filter Bar (Cols 1-5) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mb-5">
         {CATEGORIES.map((cat) => {
           const isActive = selectedCategory === cat;
           return (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`h-[69px] rounded-2xl font-bold text-lg transition-all flex items-center justify-center active:scale-98 cursor-pointer ${
+              className={`h-[64px] rounded-2xl font-bold text-lg transition-all flex items-center justify-center active:scale-98 cursor-pointer ${
                 isActive
                   ? "bg-gunmetal text-white shadow-sm"
                   : "bg-white text-gunmetal border-2 border-gray-300/80 hover:bg-gray-50"
@@ -132,54 +153,78 @@ export default function DashboardPage({
         })}
       </div>
 
-      {/* Diet Filters & Sorting Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 mb-5 p-3.5 bg-white/70 rounded-2xl border border-gray-200">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="text-xs font-bold text-kioskGray uppercase tracking-wider mr-1">
-            Diet:
-          </span>
-          {["All", "Vegetarian", "Vegan"].map((diet) => {
-            const isActive = selectedDiet === diet;
-            return (
-              <button
-                key={diet}
-                onClick={() => setSelectedDiet(diet)}
-                className={`h-11 px-5 rounded-xl text-sm font-bold transition-all active:scale-95 border cursor-pointer ${
-                  isActive
-                    ? "bg-gunmetal text-white border-gunmetal shadow-xs"
-                    : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {diet === "All" ? "All Diets" : diet}
-              </button>
-            );
-          })}
-        </div>
+      {/* Row 3: 5-Column Diet Filters & Sort Toolbar */}
+      <div className="p-3 bg-white/70 rounded-2xl border border-gray-200 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3.5 items-center">
+          {/* Column 1: DIET label + All Diets button */}
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-bold text-kioskGray uppercase tracking-wider shrink-0 pl-1">
+              DIET:
+            </span>
+            <button
+              onClick={() => setSelectedDiet("All")}
+              className={`flex-1 h-11 px-3 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${
+                selectedDiet === "All"
+                  ? "bg-gunmetal text-white border-gunmetal shadow-xs"
+                  : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              All Diets
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2.5">
-          <span className="text-xs font-bold text-kioskGray uppercase tracking-wider">
-            Sort by:
-          </span>
-          <select
-            value={sortByOption}
-            onChange={(e) => setSortByOption(e.target.value)}
-            className="h-11 px-3.5 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gunmetal outline-none focus:border-gunmetal cursor-pointer"
+          {/* Column 2: Vegetarian button (Directly under 'Food') */}
+          <button
+            onClick={() => setSelectedDiet("Vegetarian")}
+            className={`w-full h-11 px-4 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${
+              selectedDiet === "Vegetarian"
+                ? "bg-gunmetal text-white border-gunmetal shadow-xs"
+                : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
+            }`}
           >
-            <option value="newest">Newest restocked</option>
-            <option value="nutriscore">Nutri-Score (Best A to E)</option>
-            <option value="protein">Protein (Highest)</option>
-            <option value="fiber">Fiber (Highest)</option>
-          </select>
+            Vegetarian
+          </button>
+
+          {/* Column 3: Vegan button (Directly under 'Pets') */}
+          <button
+            onClick={() => setSelectedDiet("Vegan")}
+            className={`w-full h-11 px-4 rounded-xl text-sm font-bold leading-none inline-flex items-center justify-center transition-all active:scale-95 border cursor-pointer ${
+              selectedDiet === "Vegan"
+                ? "bg-gunmetal text-white border-gunmetal shadow-xs"
+                : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Vegan
+          </button>
+
+          {/* Columns 4–5: SORT BY label + Select dropdown (Directly under 'Household' + 'Hygiene') */}
+          <div className="sm:col-span-2 flex items-center justify-end gap-3">
+            <span className="text-xs font-bold text-kioskGray uppercase tracking-wider shrink-0">
+              SORT BY:
+            </span>
+            <select
+              value={sortByOption}
+              onChange={(e) => setSortByOption(e.target.value)}
+              className="w-full sm:w-[220px] h-11 px-3.5 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gunmetal outline-none focus:border-gunmetal cursor-pointer"
+            >
+              <option value="newest">Newest restocked</option>
+              <option value="nutriscore">Nutri-Score (Best A to E)</option>
+              <option value="protein">Protein (Highest)</option>
+              <option value="fiber">Fiber (Highest)</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Active Nutrition Autosort Indicator */}
+      {/* Active Nutrition Autosort Banner */}
       {activeSortNutrient && (
         <div className="mb-5 p-3.5 bg-limeCream/25 border border-limeCream-dark/30 rounded-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-limeCream-dark" />
             <span className="text-sm font-bold text-gunmetal">
-              Autosorted by: <span className="underline">{activeSortNutrient.label}</span> (Highest first)
+              Autosorted by:{" "}
+              <span className="underline">{activeSortNutrient.label}</span>{" "}
+              (Highest first)
             </span>
           </div>
           <button
@@ -192,13 +237,17 @@ export default function DashboardPage({
         </div>
       )}
 
-      {/* Item List / Grocery Cards */}
+      {/* Row 4: Item List / Grocery Cards */}
       <div className="space-y-3.5">
         {filteredItems.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center border border-gray-300/80">
-            <p className="text-xl font-bold text-gunmetal">No inventory items found</p>
+            <p className="text-xl font-bold text-gunmetal">
+              No inventory items found
+            </p>
             <p className="text-sm text-kioskGray mt-1">
-              {searchQuery ? "Try searching for a different term." : "Use 'Scan New Item' to register products."}
+              {searchQuery
+                ? "Try searching for a different term."
+                : "Use 'Scan New Item' to register products."}
             </p>
           </div>
         ) : (
@@ -221,7 +270,9 @@ export default function DashboardPage({
         <span>{filteredItems.length} items · illustrative household · 14 Oct 2026</span>
         {filteredItems.length > 2 && (
           <span className="font-medium text-gray-500 inline-flex items-center gap-1.5">
-            <span>Scroll for {Math.max(1, filteredItems.length - 2)} more items</span>
+            <span>
+              Scroll for {Math.max(1, filteredItems.length - 2)} more items
+            </span>
             <FigmaChevronDown className="w-3.5 h-3.5 fill-current" />
           </span>
         )}

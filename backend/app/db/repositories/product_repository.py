@@ -11,7 +11,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models import ItemCategory, PreferredStore, ProductCatalog
-from app.schemas import ProductCatalogCreate
+from app.schemas import ProductCatalogCreate, ProductCatalogUpdate
 
 
 class ProductRepository:
@@ -59,6 +59,19 @@ class ProductRepository:
         """Saves a new product with all its nutrition details into the database."""
         product = ProductCatalog(**payload.model_dump())
         db.add(product)
+        db.commit()
+        db.refresh(product)
+        return product
+
+    @staticmethod
+    def update(db: Session, product: ProductCatalog, payload: ProductCatalogUpdate) -> ProductCatalog:
+        """
+        Updates an existing product's details (such as its name, package size,
+        or preferred store) in the catalog table.
+        """
+        update_data = payload.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(product, field, value)
         db.commit()
         db.refresh(product)
         return product

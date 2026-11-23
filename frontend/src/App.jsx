@@ -1,3 +1,12 @@
+/**
+ * Main Application Component for GroceryPi.
+ *
+ * Manages the active screen tab (Dashboard, Cart, or Nutrition), loads kitchen
+ * inventory and nutrition data from the FastAPI backend, listens for physical
+ * barcode scans from the Raspberry Pi camera every second, and coordinates all
+ * pop-up modals (Scan Feedback, Edit Item, Delete Confirmation, and Scan Modal).
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Navbar from "./components/Navbar";
 import DashboardPage from "./pages/DashboardPage";
@@ -5,6 +14,7 @@ import CartPage from "./pages/CartPage";
 import NutritionPage from "./pages/NutritionPage";
 import ScanFeedbackOverlay from "./components/ScanFeedbackOverlay";
 import DeleteConfirmModal from "./components/DeleteConfirmModal";
+import EditItemModal from "./components/EditItemModal";
 import ScanModal from "./components/ScanModal";
 import api from "./api/client";
 
@@ -15,13 +25,17 @@ export default function App() {
   const [nutritionSummary, setNutritionSummary] = useState(null);
   const [activeSortNutrient, setActiveSortNutrient] = useState(null);
 
-  // Modals
+  // Active pop-up modal states
   const [scanFeedbackEvent, setScanFeedbackEvent] = useState(null);
   const [deleteModalItem, setDeleteModalItem] = useState(null);
+  const [editModalItem, setEditModalItem] = useState(null);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [scannerStatus, setScannerStatus] = useState("demo");
 
-  // Fetch inventory from backend
+  /**
+   * Fetches the current list of kitchen inventory items from the backend,
+   * optionally sorted by a specific nutrient (such as protein or sugar).
+   */
   const fetchInventory = useCallback(async (sortNutrient = null) => {
     try {
       let url = "/inventory";
@@ -35,7 +49,10 @@ export default function App() {
     }
   }, []);
 
-  // Fetch catalog & nutrition summary
+  /**
+   * Loads sample catalog products, the total pantry nutrition summary, and the
+   * current status of the physical camera scanner.
+   */
   const fetchAuxData = useCallback(async () => {
     try {
       const [prodRes, nutRes, scanRes] = await Promise.allSettled([
@@ -60,10 +77,13 @@ export default function App() {
     fetchAuxData();
   }, [fetchInventory, fetchAuxData, activeSortNutrient]);
 
-  // Listen for hardware barcode scans from Camera Module v3 loop
+  /**
+   * Checks the backend every second to see if the Raspberry Pi Camera Module v3
+   * has scanned a new barcode in the background.
+   */
   useEffect(() => {
-    // Prime the latest scan ID so previous scans aren't re-triggered on load
-    api.get("/scanner/latest-event")
+    api
+      .get("/scanner/latest-event")
       .then((res) => {
         if (res.data?.scan_id) {
           lastProcessedScanIdRef.current = res.data.scan_id;
@@ -87,14 +107,16 @@ export default function App() {
           }
         }
       } catch (err) {
-        // Quietly ignore polling blips
+        // Ignore temporary network hiccups during polling
       }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [fetchInventory, fetchAuxData, activeSortNutrient]);
 
-  // Handle barcode scan ingestion
+  /**
+   * Sends a manually typed or sample barcode scan to the backend.
+   */
   const handleScanBarcode = async (barcode) => {
     try {
       const res = await api.post("/inventory/scan", {
@@ -115,7 +137,9 @@ export default function App() {
     }
   };
 
-  // Undo scan action
+  /**
+   * Reverts a barcode scan when the user taps the 5-second 'Undo' button.
+   */
   const handleUndoScan = async (event) => {
     try {
       const invId = event.inventory_item?.id;
@@ -135,7 +159,9 @@ export default function App() {
     }
   };
 
-  // Increment item quantity (+)
+  /**
+   * Increases an item's stock count by +1 when tapping the plus button.
+   */
   const handleIncrement = async (item) => {
     try {
       await api.patch(`/inventory/${item.id}`, { quantity: item.quantity + 1 });
@@ -146,7 +172,10 @@ export default function App() {
     }
   };
 
-  // Decrement item quantity (-)
+  /**
+   * Decreases an item's stock count by -1, or opens the Delete confirmation modal
+   * if the item is down to its last unit.
+   */
   const handleDecrement = async (item) => {
     if (item.quantity <= 1) {
       setDeleteModalItem(item);
@@ -161,7 +190,35 @@ export default function App() {
     }
   };
 
-  // Confirm delete item
+  /**
+   * Saves changes made inside EditItemModal (product name, package size,
+   * preferred store badge, and custom restock interval days).
+   */
+  const handleSaveEdit = async (item, updates) => {
+    try {
+      const barcode = item.product?.barcode;
+      if (barcode) {
+        await api.patch(`/products/${encodeURIComponent(barcode)}`, {
+          name: updates.name,
+          package_size: updates.package_size,
+          preferred_store: updates.preferred_store,
+        });
+      }
+      await api.patch(`/inventory/${item.id}`, {
+        manual_interval_override: updates.manual_interval_override,
+      });
+      setEditModalItem(null);
+      fetchInventory(activeSortNutrient);
+      fetchAuxData();
+    } catch (err) {
+      console.error("Edit save error:", err);
+      alert("Could not save changes to this item.");
+    }
+  };
+
+  /**
+   * Permanently deletes an item from the kitchen inventory after confirmation.
+   */
   const handleConfirmDelete = async (item) => {
     try {
       await api.delete(`/inventory/${item.id}`);
@@ -173,13 +230,18 @@ export default function App() {
     }
   };
 
-  // Handle nutrition bar click: autosort and transition to dashboard
+  /**
+   * Sorts the Dashboard by a chosen nutrient when the user taps a bar or pie slice
+   * on the Nutrition screen.
+   */
   const handleSelectNutrientSort = (nutrient) => {
     setActiveSortNutrient(nutrient);
     setActiveTab("dashboard");
   };
 
-  // Home button: exit kiosk mode to Raspberry Pi OS desktop
+  /**
+   * Exits full-screen Chromium kiosk mode when the user taps the Home button.
+   */
   const handleHomeExit = async () => {
     try {
       await api.post("/system/exit-kiosk");
@@ -193,7 +255,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-parchment text-gunmetal flex flex-col font-sans">
-      {/* Persistent Kiosk Top Navbar */}
+      {/* Fixed Top Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
@@ -202,7 +264,7 @@ export default function App() {
         storesStatus="not connected"
       />
 
-      {/* Main Kiosk Content Screens */}
+      {/* Main Kiosk Views */}
       <main className="flex-1">
         {activeTab === "dashboard" && (
           <DashboardPage
@@ -211,7 +273,7 @@ export default function App() {
             onClearNutrientSort={() => setActiveSortNutrient(null)}
             onIncrement={handleIncrement}
             onDecrement={handleDecrement}
-            onEdit={(item) => alert(`Editing '${item.product?.name}' (${item.product?.barcode})`)}
+            onEdit={(item) => setEditModalItem(item)}
             onDelete={(item) => setDeleteModalItem(item)}
             onOpenScanModal={() => setIsScanModalOpen(true)}
           />
@@ -227,11 +289,17 @@ export default function App() {
         )}
       </main>
 
-      {/* Modals & Overlays */}
+      {/* Pop-Up Modals & Overlays */}
       <ScanFeedbackOverlay
         scanEvent={scanFeedbackEvent}
         onUndo={handleUndoScan}
         onClose={() => setScanFeedbackEvent(null)}
+      />
+
+      <EditItemModal
+        item={editModalItem}
+        onSave={handleSaveEdit}
+        onCancel={() => setEditModalItem(null)}
       />
 
       <DeleteConfirmModal

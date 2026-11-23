@@ -16,6 +16,8 @@ env/
 *.db-shm
 *.db-wal
 *.sqlite3
+backend/app/db/ah_product_cache.json
+**/ah_product_cache.json
 
 # Environment
 .env
