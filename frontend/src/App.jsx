@@ -12,6 +12,7 @@ import Navbar from "./components/Navbar";
 import DashboardPage from "./pages/DashboardPage";
 import CartPage from "./pages/CartPage";
 import NutritionPage from "./pages/NutritionPage";
+import LoginPage from "./pages/LoginPage";
 import ScanFeedbackOverlay from "./components/ScanFeedbackOverlay";
 import DeleteConfirmModal from "./components/DeleteConfirmModal";
 import EditItemModal from "./components/EditItemModal";
@@ -43,6 +44,21 @@ export default function App() {
     label: "Not connected",
     connectedStores: [],
   });
+  const [mobileUser, setMobileUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("gp_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Local Raspberry Pi kiosk (localhost / 127.0.0.1 without ?mobile=1) stays zero-friction hands-free;
+  // remote mobile/web access requires unlocking with a hashed password.
+  const isLocalKiosk =
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1") &&
+    !window.location.search.includes("mobile=1");
 
   /**
    * Fetches the current list of kitchen inventory items from the backend,
@@ -339,6 +355,10 @@ export default function App() {
       window.close();
     } catch (_) {}
   };
+
+  if (!isLocalKiosk && !mobileUser) {
+    return <LoginPage onAuthenticated={(user) => setMobileUser(user)} />;
+  }
 
   return (
     <div className="min-h-screen bg-parchment text-gunmetal flex flex-col font-sans">

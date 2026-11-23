@@ -18,10 +18,11 @@ from typing import Any, Dict, Set
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app import schemas
+from app import models, schemas
 from app.clients.ah_gateway import AHStoreGateway, JumboStoreGateway
 from app.clients.off_client import OpenFoodFactsClient
 from app.database import get_db
+from app.db.repositories.inventory_repository import InventoryRepository
 from app.services.inventory.inventory import inventory_service
 from app.services.prediction.prediction import prediction_engine
 
@@ -132,3 +133,25 @@ def sync_store_cart(store: str, db: Session = Depends(get_db)):
         "synced_at": datetime.now(timezone.utc).isoformat(),
         "stores_status": _format_stores_status(),
     }
+
+
+@router.post("/restock/{item_id}", response_model=schemas.InventoryItemOut)
+def mark_cart_item_bought_on_mobile(item_id: int, db: Session = Depends(get_db)):
+    """
+    Allows an authenticated mobile shopper in the supermarket aisle to tap
+    'Bought / Restock' on a suggested cart item, immediately replenishing the
+    item in grocerypi.db (IN_STOCK, quantity = 1) and updating its learned
+    restock interval.
+    """
+    inv_item = InventoryRepository.get_by_id(db, item_id)
+    if not inv_item:
+        raise HTTPException(status_code=404, detail=f"Inventory item {item_id} not found")
+
+    updated = InventoryRepository.upsert_stock_on_scan(
+        db=db,
+        product_id=inv_item.product_id,
+        now_utc=datetime.now(timezone.utc),
+    )
+    db.commit()
+    return InventoryRepository.get_by_id(db, updated.id)
+

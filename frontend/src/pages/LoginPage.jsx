@@ -1,41 +1,48 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  M3Cart as ShoppingCart,
-  M3Eco as Leaf,
-  M3Visibility as Eye,
-  M3VisibilityOff as EyeOff,
-  M3Loader as Loader2,
-} from "../components/Material3Icons";
-import { useAuth } from "../context/AuthContext";
+/**
+ * Mobile / Remote Web Login Page for GroceryPi.
+ *
+ * Styled in the GroceryPi kitchen color palette (Gunmetal #383D3B, Parchment #F7F4F2,
+ * Lime Cream #C3E48B, Dusty Rose #CD7A7A). Protects remote mobile browser access
+ * with a bcrypt-hashed password while keeping the physical Raspberry Pi kitchen
+ * kiosk hands-free on localhost.
+ */
 
-export default function LoginPage() {
-  const { login, register } = useAuth();
-  const navigate = useNavigate();
+import React, { useState } from "react";
+import { FigmaBarcode } from "../components/FigmaIcons";
+import api from "../api/client";
 
+export default function LoginPage({ onAuthenticated }) {
   const [tab, setTab] = useState("login"); // "login" | "register"
   const [form, setForm] = useState({ username: "", email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      if (tab === "login") {
-        await login(form.username, form.password);
-      } else {
-        await register(form.username, form.email, form.password);
-      }
-      navigate("/");
+      const endpoint = tab === "login" ? "/auth/login" : "/auth/register";
+      const payload =
+        tab === "login"
+          ? { username: form.username.trim(), password: form.password }
+          : {
+              username: form.username.trim(),
+              email: form.email.trim(),
+              password: form.password,
+            };
+      const res = await api.post(endpoint, payload);
+      const { access_token, user } = res.data;
+      localStorage.setItem("gp_token", access_token);
+      localStorage.setItem("gp_user", JSON.stringify(user));
+      if (onAuthenticated) onAuthenticated(user);
     } catch (err) {
       setError(
-        err.response?.data?.detail || "Something went wrong. Please try again."
+        err.response?.data?.detail ||
+          "Could not verify credentials. Please check your username and password."
       );
     } finally {
       setLoading(false);
@@ -43,143 +50,111 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      {/* Background decoration */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -right-32 h-80 w-80 rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-brand-700/10 blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-sm animate-slide-up">
-        {/* Logo */}
-        <div className="mb-8 flex flex-col items-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500 shadow-2xl shadow-brand-500/40">
-            <ShoppingCart size={28} className="text-white" strokeWidth={2} />
+    <div className="min-h-screen bg-parchment text-gunmetal flex flex-col items-center justify-center px-4 py-10 select-none font-sans">
+      <div className="w-full max-w-md bg-white rounded-3xl p-7 sm:p-8 shadow-xl border border-gray-300/80">
+        {/* Header Brand */}
+        <div className="flex items-center gap-3.5 mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-gunmetal text-white flex items-center justify-center shrink-0">
+            <FigmaBarcode className="w-7 h-7 fill-[#F7F4F2]" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Grocery<span className="text-brand-400">Pi</span>
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 flex items-center gap-1.5">
-            <Leaf size={12} className="text-brand-500" />
-            Smart grocery tracking for your home
-          </p>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gunmetal tracking-tight leading-none">
+              GroceryPi Mobile
+            </h1>
+            <p className="text-xs sm:text-sm text-kioskGray mt-1">
+              Hashed-password gate for remote pantry &amp; shopping list sync
+            </p>
+          </div>
         </div>
 
-        {/* Card */}
-        <div className="card">
-          {/* Tabs */}
-          <div className="mb-6 flex rounded-xl bg-surface-900/60 p-1">
-            {["login", "register"].map((t) => (
-              <button
-                key={t}
-                id={`tab-${t}`}
-                onClick={() => { setTab(t); setError(""); }}
-                className={`flex-1 rounded-lg py-2 text-sm font-semibold capitalize transition-all duration-200 ${
-                  tab === t
-                    ? "bg-surface-700 text-white shadow"
-                    : "text-gray-500 hover:text-gray-300"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+        {/* Sign In / Create Account Switcher */}
+        <div className="grid grid-cols-2 gap-2 p-1.5 bg-parchment rounded-2xl border border-gray-300 mb-6">
+          {["login", "register"].map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => {
+                setTab(mode);
+                setError("");
+              }}
+              className={`h-11 rounded-xl font-bold text-sm capitalize transition-all cursor-pointer ${
+                tab === mode
+                  ? "bg-gunmetal text-white shadow-xs"
+                  : "text-gunmetal hover:bg-white/60"
+              }`}
+            >
+              {mode === "login" ? "Sign In" : "Create Account"}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-kioskGray mb-1.5">
+              Username
+            </label>
+            <input
+              name="username"
+              type="text"
+              required
+              value={form.username}
+              onChange={handleChange}
+              placeholder="e.g. cinna"
+              className="w-full h-[52px] px-4 rounded-xl border-2 border-gray-300 focus:border-gunmetal text-base font-semibold text-gunmetal outline-none transition-colors"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username */}
+          {tab === "register" && (
             <div>
-              <label htmlFor="username" className="mb-1.5 block text-xs font-medium text-gray-400">
-                Username
+              <label className="block text-xs font-bold uppercase tracking-wider text-kioskGray mb-1.5">
+                Email
               </label>
               <input
-                id="username"
-                name="username"
-                type="text"
-                className="input"
-                placeholder="your_username"
-                value={form.username}
-                onChange={handleChange}
+                name="email"
+                type="email"
                 required
-                autoComplete="username"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="household@example.com"
+                className="w-full h-[52px] px-4 rounded-xl border-2 border-gray-300 focus:border-gunmetal text-base font-semibold text-gunmetal outline-none transition-colors"
               />
             </div>
+          )}
 
-            {/* Email (register only) */}
-            {tab === "register" && (
-              <div className="animate-fade-in">
-                <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-gray-400">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  className="input"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                  autoComplete="email"
-                />
-              </div>
-            )}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-kioskGray mb-1.5">
+              Password
+            </label>
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={tab === "register" ? 6 : 1}
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              className="w-full h-[52px] px-4 rounded-xl border-2 border-gray-300 focus:border-gunmetal text-base font-semibold text-gunmetal outline-none transition-colors"
+            />
+          </div>
 
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-gray-400">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  className="input pr-11"
-                  placeholder={tab === "register" ? "Min. 6 characters" : "••••••••"}
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                  minLength={tab === "register" ? 6 : 1}
-                  autoComplete={tab === "register" ? "new-password" : "current-password"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+          {error && (
+            <div className="p-3 rounded-xl bg-dustyRose/30 border border-dustyRose-dark text-xs font-bold text-gunmetal">
+              {error}
             </div>
+          )}
 
-            {/* Error */}
-            {error && (
-              <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400 animate-fade-in">
-                {error}
-              </p>
-            )}
-
-            {/* Submit */}
-            <button
-              id="auth-submit-btn"
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full mt-2"
-            >
-              {loading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : tab === "login" ? (
-                "Sign In"
-              ) : (
-                "Create Account"
-              )}
-            </button>
-          </form>
-        </div>
-
-        <p className="mt-6 text-center text-xs text-gray-600">
-          GroceryPi — running on your Raspberry Pi
-        </p>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-[60px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-lg transition-all active:scale-98 flex items-center justify-center shadow-md cursor-pointer mt-2"
+          >
+            {loading
+              ? "Verifying..."
+              : tab === "login"
+              ? "Unlock GroceryPi Mobile"
+              : "Register & Unlock"}
+          </button>
+        </form>
       </div>
     </div>
   );

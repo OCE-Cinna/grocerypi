@@ -33,19 +33,32 @@ export default function Navbar({
 
   return (
     <header className="bg-gunmetal text-white select-none sticky top-0 z-40 border-b border-gray-800">
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 h-[80px] grid grid-cols-2 md:grid-cols-5 gap-3.5 items-center">
+      <div className="max-w-[1180px] mx-auto px-3 sm:px-6 py-2.5 md:py-0 md:h-[80px] grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3.5 items-center">
         {/* Column 1: Brand Logo & Title (Aligns over 'All' category column) */}
         <div
           onClick={onHome}
-          className="flex items-center gap-3 cursor-pointer group"
-          title="Exit Kiosk Mode"
+          className="col-span-3 md:col-span-1 flex items-center justify-between md:justify-start gap-3 cursor-pointer group"
+          title="Open GroceryPi System Menu"
         >
-          <div className="w-10 h-10 rounded-xl bg-white/10 group-hover:bg-white/20 transition-colors flex items-center justify-center text-white shrink-0">
-            <FigmaBarcode className="w-6 h-6 fill-[#F7F4F2]" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 group-hover:bg-white/20 transition-colors flex items-center justify-center text-white shrink-0">
+              <FigmaBarcode className="w-6 h-6 fill-[#F7F4F2]" />
+            </div>
+            <span className="font-extrabold text-xl sm:text-2xl leading-none tracking-tight text-white">
+              GroceryPi
+            </span>
           </div>
-          <span className="font-extrabold text-2xl leading-none tracking-tight text-white">
-            GroceryPi
-          </span>
+          {/* Compact mobile status indicator (< md) */}
+          <div className="flex md:hidden items-center gap-3 text-[11px] text-gray-300">
+            <span className="inline-flex items-center gap-1">
+              <span className={`w-2 h-2 rounded-full ${scannerDotColor}`} />
+              <span>{scannerStatus}</span>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className={`w-2 h-2 rounded-full ${storesDotColor}`} />
+              <span>{storesStatus}</span>
+            </span>
+          </div>
         </div>
 
         {/* Column 2: Dashboard Tab (Aligns over 'Food' column) */}

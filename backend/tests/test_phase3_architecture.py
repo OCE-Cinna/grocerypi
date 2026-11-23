@@ -600,6 +600,19 @@ def test_checkin_midnight_batch_auto_depletion_and_cart_sync():
         assert "gateway_sync" in sync_body
         assert sync_body["stores_status"]["connected"] is True
         assert "AH" in sync_body["stores_status"]["connected_stores"]
+
+        # 9. Epic 4.4: Modular AuthService & In-Store Mobile Cart Restock Checklist
+        from app.services.auth import auth_service
+
+        hashed_pw = auth_service.hash_password("mobileShopper99")
+        assert auth_service.verify_password("mobileShopper99", hashed_pw) is True
+        jwt_tok = auth_service.create_token(user_id=1)
+        assert isinstance(jwt_tok, str) and len(jwt_tok) > 10
+
+        restock_res = client.post(f"/cart/restock/{item.id}")
+        assert restock_res.status_code == 200
+        assert restock_res.json()["quantity"] >= 1
+        assert restock_res.json()["status"] == "IN_STOCK"
     finally:
         db.close()
 

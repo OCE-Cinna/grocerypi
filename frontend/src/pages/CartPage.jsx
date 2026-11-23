@@ -123,6 +123,21 @@ export default function CartPage({ onCartSynced, storesInfo }) {
     }
   };
 
+  /**
+   * Marks a suggested shopping list item as bought/restocked directly from the
+   * Cart screen (ideal for mobile shoppers in the supermarket aisle), updating
+   * grocerypi.db in real time.
+   */
+  const handleMarkItemBought = async (itemId) => {
+    try {
+      await api.post(`/cart/restock/${itemId}`);
+      await fetchCartSuggestions();
+      if (onCartSynced) onCartSynced();
+    } catch (err) {
+      console.error("Failed to mark cart item as bought:", err);
+    }
+  };
+
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 pb-20 select-none">
       {/* Page Title */}
@@ -230,9 +245,19 @@ export default function CartPage({ onCartSynced, storesInfo }) {
                   </div>
                 </div>
 
-                <span className="text-xl sm:text-2xl font-bold text-gunmetal shrink-0">
-                  {item.quantity_text}
-                </span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xl sm:text-2xl font-bold text-gunmetal">
+                    {item.quantity_text}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleMarkItemBought(item.id)}
+                    className="h-10 px-3.5 rounded-xl bg-parchment hover:bg-limeCream text-gunmetal border border-gray-300 text-xs font-bold transition-colors cursor-pointer active:scale-95"
+                    title="Mark item as bought and restock into kitchen inventory"
+                  >
+                    Bought (+1)
+                  </button>
+                </div>
               </div>
             );
           })

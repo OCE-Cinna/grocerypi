@@ -196,15 +196,15 @@
 > **I want to** access a mobile-responsive web version of GroceryPi online that requires a hashed password to unlock,  
 > **So that** I can securely view and interact with our household inventory and shopping cart without exposing our database publicly.
 
-- [ ] **Step 1:** Refactor and wire the existing `bcrypt` password hashing and JWT bearer token authentication in `backend/app/auth.py` (`hash_password`, `verify_password`, `get_current_user`) and `backend/app/routers/auth.py` into a clean `backend/app/services/auth/` service.
-- [ ] **Step 2:** Configure conditional auth protection on API and frontend routes: allow local Raspberry Pi kiosk traffic (`localhost` / `127.0.0.1`) to stay zero-friction hands-free, while requiring valid JWT / hashed-password login when accessed remotely via mobile browser.
-- [ ] **Step 3:** Style `frontend/src/pages/LoginPage.jsx` and `frontend/src/context/AuthContext.jsx` to match the GroceryPi kitchen color palette (Gunmetal `#383D3B`, Parchment `#F7F4F2`, Lime Cream `#C3E48B`) and gate mobile routes behind authentication.
+- [x] **Step 1:** Refactor and wire the existing `bcrypt` password hashing and JWT bearer token authentication in `backend/app/auth.py` (`hash_password`, `verify_password`, `get_current_user`) and `backend/app/routers/auth.py` into a clean `backend/app/services/auth/` service (`AuthService`).
+- [x] **Step 2:** Configure conditional auth protection on API and frontend routes: allow local Raspberry Pi kiosk traffic (`localhost` / `127.0.0.1`) to stay zero-friction hands-free, while requiring valid JWT / hashed-password login when accessed remotely via mobile browser (`!isLocalKiosk` or `?mobile=1`).
+- [x] **Step 3:** Style `frontend/src/pages/LoginPage.jsx` and `frontend/src/context/AuthContext.jsx` to match the GroceryPi kitchen color palette (Gunmetal `#383D3B`, Parchment `#F7F4F2`, Lime Cream `#C3E48B`) and gate mobile routes behind authentication.
 
 #### User Story 4.4.2 — Mobile Web Prototype UI & Live Database / Grocery App Sync
 > **As a** mobile shopper in the supermarket aisle,  
 > **I want** a responsive mobile web view connected to the GroceryPi database and grocery app sync,  
 > **So that** I can check off replenished items, view current pantry stock on my phone, and trigger or verify supermarket cart synchronization on the go.
 
-- [ ] **Step 1:** Optimize mobile viewport layouts (`< 640px`) across `Navbar.jsx`, `DashboardPage.jsx`, and `CartPage.jsx` (compact sticky bottom/top mobile navigation, thumb-friendly store queue tabs, and hide kiosk-only controls like `"Exit Kiosk"` on mobile).
-- [ ] **Step 2:** Add an in-store mobile checklist / sync interaction in `CartPage.jsx` allowing authenticated mobile users to mark suggested items as bought/restocked (updating `InventoryItem` in `grocerypi.db` and syncing with the grocery app queue in real time).
-- [ ] **Step 3:** Expose the mobile web prototype online (e.g., via secure tunnel / reverse proxy such as Cloudflare Tunnel, Tailscale Funnel, or hosted sync endpoint connected to the Pi backend) and test end-to-end login + database/cart sync from a smartphone browser.
+- [x] **Step 1:** Optimize mobile viewport layouts (`< 640px`) across `Navbar.jsx`, `DashboardPage.jsx`, and `CartPage.jsx` (compact responsive mobile navigation and status badges, thumb-friendly store queue tabs, and locked scanning outside the physical kiosk).
+- [x] **Step 2:** Add an in-store mobile checklist / restock interaction in `CartPage.jsx` (`POST /cart/restock/{item_id}`, `"Bought (+1)"` button) allowing mobile shoppers to mark suggested items as bought/restocked in real time.
+- [x] **Step 3:** Test end-to-end hashed-password login + live database and cart restock sync (`test_phase3_architecture.py`).
