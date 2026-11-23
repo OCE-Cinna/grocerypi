@@ -1,4 +1,4 @@
-# GroceryPi 🛒
+# GroceryPi
 
 A smart grocery list tracker designed to run on your **Raspberry Pi** as a local home server.
 
