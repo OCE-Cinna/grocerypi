@@ -118,10 +118,11 @@ class ProductCatalog(Base):
     webshop_id = Column(Integer, nullable=True, index=True)
     package_size = Column(String(50), nullable=True)
 
-    # Diet and health labels
+    # Diet, storage, and health labels
     nutriscore = Column(String(5), nullable=True)  # Grade 'A', 'B', 'C', 'D', or 'E'
     is_vegetarian = Column(Boolean, default=False, nullable=False)
     is_vegan = Column(Boolean, default=False, nullable=False)
+    is_frozen = Column(Boolean, default=False, nullable=False)
 
     # Nutrition values per 100g in standard European label order
     energy_kj = Column(Float, default=0.0, nullable=False)

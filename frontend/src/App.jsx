@@ -221,6 +221,7 @@ export default function App() {
           name: updates.name,
           package_size: updates.package_size,
           preferred_store: updates.preferred_store,
+          is_frozen: updates.is_frozen,
         });
       }
       await api.patch(`/inventory/${item.id}`, {

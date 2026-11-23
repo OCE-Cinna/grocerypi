@@ -68,6 +68,8 @@ def init_db():
             conn.execute(text("ALTER TABLE product_catalog ADD COLUMN is_vegetarian BOOLEAN DEFAULT 0 NOT NULL;"))
         if "is_vegan" not in prod_cols:
             conn.execute(text("ALTER TABLE product_catalog ADD COLUMN is_vegan BOOLEAN DEFAULT 0 NOT NULL;"))
+        if "is_frozen" not in prod_cols:
+            conn.execute(text("ALTER TABLE product_catalog ADD COLUMN is_frozen BOOLEAN DEFAULT 0 NOT NULL;"))
 
         res = conn.execute(text("PRAGMA table_info(inventory_items);")).fetchall()
         inv_cols = [r[1] for r in res]

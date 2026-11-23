@@ -17,6 +17,7 @@ export default function EditItemModal({ item, onSave, onCancel }) {
   const [name, setName] = useState("");
   const [packageSize, setPackageSize] = useState("");
   const [preferredStore, setPreferredStore] = useState("AH");
+  const [isFrozen, setIsFrozen] = useState(false);
   const [intervalDays, setIntervalDays] = useState(7);
   const [saving, setSaving] = useState(false);
 
@@ -32,6 +33,7 @@ export default function EditItemModal({ item, onSave, onCancel }) {
     setName(cleanName || product.name || "");
     setPackageSize(product.package_size || "1 unit");
     setPreferredStore(product.preferred_store || "AH");
+    setIsFrozen(Boolean(product.is_frozen));
     const effectiveInterval =
       item.manual_interval_override ?? item.restock_interval_days ?? 7;
     setIntervalDays(Math.max(1, Math.round(effectiveInterval)));
@@ -52,6 +54,7 @@ export default function EditItemModal({ item, onSave, onCancel }) {
         name: name.trim(),
         package_size: packageSize.trim() || "1 unit",
         preferred_store: preferredStore,
+        is_frozen: isFrozen,
         manual_interval_override: Math.max(1, Number(intervalDays) || 7),
       });
     } finally {
@@ -149,7 +152,43 @@ export default function EditItemModal({ item, onSave, onCancel }) {
             </div>
           </div>
 
-          {/* 3. Restock Interval (Days) Override */}
+          {/* 3. Storage Type (Pantry/Fridge vs. Frozen Freezer Item) */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-kioskGray mb-1.5">
+              Storage Location (Frozen items are exempt from the 30-day shelf cap)
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsFrozen(false)}
+                className={`h-[52px] rounded-xl font-bold text-sm transition-all flex items-center justify-center cursor-pointer active:scale-98 border-2 ${
+                  !isFrozen
+                    ? "bg-gunmetal text-white border-gunmetal shadow-xs"
+                    : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                Pantry / Fridge
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFrozen(true);
+                  if (Number(intervalDays) <= 14) {
+                    setIntervalDays(45);
+                  }
+                }}
+                className={`h-[52px] rounded-xl font-bold text-sm transition-all flex items-center justify-center cursor-pointer active:scale-98 border-2 ${
+                  isFrozen
+                    ? "bg-gunmetal text-white border-gunmetal shadow-xs"
+                    : "bg-white text-gunmetal border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                Frozen (Freezer)
+              </button>
+            </div>
+          </div>
+
+          {/* 4. Restock Interval (Days) Override */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-kioskGray mb-1.5">
               Restock Interval (Usually bought every X days)

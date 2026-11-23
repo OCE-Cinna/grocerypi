@@ -37,18 +37,35 @@ export default function DashboardPage({
   const [selectedDiet, setSelectedDiet] = useState("All");
   const [sortByOption, setSortByOption] = useState("newest");
   const [showDepleted, setShowDepleted] = useState(false);
+  const [dismissedCycleBanner, setDismissedCycleBanner] = useState(false);
 
   /**
-   * Counts how many items are currently depleted or synced to the cart (0 units)
-   * and hidden from the main dashboard view by default.
+   * Counts how many items have reached 100% of their restock cycle (Depleted / In Cart)
+   * and how many stocked items are at 75% or more of their cycle (running low).
    */
-  const depletedCount = useMemo(
-    () =>
-      items.filter(
-        (item) => item.status === "DEPLETED" || (item.quantity ?? 1) <= 0
-      ).length,
-    [items]
-  );
+  const { depletedCount, runningLowCount } = useMemo(() => {
+    let depleted = 0;
+    let low = 0;
+    const nowMs = Date.now();
+
+    for (const item of items) {
+      const isDep = item.status === "DEPLETED" || (item.quantity ?? 1) <= 0;
+      if (isDep) {
+        depleted += 1;
+      } else if (item.last_restocked_at) {
+        const elapsedDays = Math.max(
+          0,
+          (nowMs - new Date(item.last_restocked_at).getTime()) / 86400000
+        );
+        const effInterval =
+          item.manual_interval_override ?? item.restock_interval_days ?? 7;
+        if (effInterval > 0 && elapsedDays / effInterval >= 0.75) {
+          low += 1;
+        }
+      }
+    }
+    return { depletedCount: depleted, runningLowCount: low };
+  }, [items]);
 
   /**
    * Filters the displayed items based on active stock status (hiding depleted/synced
@@ -235,6 +252,52 @@ export default function DashboardPage({
           </div>
         </div>
       </div>
+
+      {/* Non-Blocking Restock Cycle Banner (75% Running Low & 100% Auto-Depleted) */}
+      {!dismissedCycleBanner && (depletedCount > 0 || runningLowCount > 0) && (
+        <div className="mb-5 p-3.5 bg-white border border-gray-300 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5 text-sm text-gunmetal">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+            <span>
+              <strong className="font-bold">Restock cycle update:</strong>{" "}
+              {depletedCount > 0 && (
+                <span>
+                  {depletedCount} item{depletedCount === 1 ? "" : "s"} reached
+                  100% &amp; moved to Cart
+                </span>
+              )}
+              {depletedCount > 0 && runningLowCount > 0 && <span> · </span>}
+              {runningLowCount > 0 && (
+                <span>
+                  {runningLowCount} item{runningLowCount === 1 ? "" : "s"} at
+                  ≥75% cycle (running low)
+                </span>
+              )}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {depletedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowDepleted((prev) => !prev)}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gunmetal text-white hover:bg-gunmetal-dark transition-colors cursor-pointer"
+              >
+                {showDepleted
+                  ? `Hide Depleted (${depletedCount})`
+                  : `Review Depleted (${depletedCount})`}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setDismissedCycleBanner(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gunmetal border border-gray-300 transition-colors cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active Nutrition Autosort Banner */}
       {activeSortNutrient && (

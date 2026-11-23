@@ -108,6 +108,32 @@ def map_category(main_cat: str, sub_cat: str, title: str) -> ItemCategory:
     return ItemCategory.FOOD
 
 
+def detect_is_frozen(
+    main_cat: str = "",
+    sub_cat: str = "",
+    title: str = "",
+    categories_tags: Optional[List[str]] = None,
+    prop_icons: Optional[List[str]] = None,
+) -> bool:
+    """
+    Detects whether a product belongs in the freezer (for example, frozen vegetables,
+    potatoes/fries, frozen berries, or ice cream) using Albert Heijn category fields
+    ('Diepvries') and Open Food Facts category tags ('en:frozen-foods', 'nl:diepvries').
+    """
+    tags_text = " ".join(str(t) for t in (categories_tags or []))
+    icons_text = " ".join(str(p) for p in (prop_icons or []))
+    combined = f"{main_cat} {sub_cat} {title} {tags_text} {icons_text}".lower()
+    frozen_keywords = [
+        "diepvries",
+        "diepgevroren",
+        "frozen",
+        "en:frozen",
+        "nl:diepvries",
+        "vriesvers",
+    ]
+    return any(kw in combined for kw in frozen_keywords)
+
+
 class AHClient(IStoreGateway):
     """
     Connects to the Albert Heijn online catalog and Open Food Facts database to
@@ -439,6 +465,12 @@ class AHClient(IStoreGateway):
         main_cat = str(product_data.get("mainCategory") or "")
         sub_cat = str(product_data.get("subCategory") or "")
         category = map_category(main_cat, sub_cat, clean_name)
+        is_frozen = detect_is_frozen(
+            main_cat=main_cat,
+            sub_cat=sub_cat,
+            title=raw_title,
+            prop_icons=prop_icons,
+        )
 
         result = {
             "barcode": clean_barcode,
@@ -450,6 +482,7 @@ class AHClient(IStoreGateway):
             "nutriscore": nutriscore_str,
             "is_vegan": is_vegan,
             "is_vegetarian": is_veg,
+            "is_frozen": is_frozen,
             "nutrition": nutrition_facts,
         }
 
@@ -510,9 +543,14 @@ class AHClient(IStoreGateway):
                         "salt_grams": float(nutriments.get("salt_100g") or 0.0),
                     }
 
+                    cat_tags_list = [str(c) for c in (prod.get("categories_tags") or [])]
                     en_or_nl_cats = " ".join(
-                        str(c) for c in (prod.get("categories_tags") or [])
-                        if str(c).startswith(("en:", "nl:"))
+                        c for c in cat_tags_list if c.startswith(("en:", "nl:"))
+                    )
+                    is_frozen = detect_is_frozen(
+                        title=selected_title,
+                        categories_tags=cat_tags_list,
+                        prop_icons=tags,
                     )
 
                     return {
@@ -526,6 +564,7 @@ class AHClient(IStoreGateway):
                         "nutriscore": nutriscore,
                         "is_vegan": is_vegan,
                         "is_vegetarian": is_veg,
+                        "is_frozen": is_frozen,
                         "nutrition": nutrition,
                     }
         except Exception as e:
@@ -581,6 +620,7 @@ def resolve_barcode_to_catalog_item(barcode: str, db: Session) -> ProductCatalog
         nutriscore=prod_data.get("nutriscore"),
         is_vegan=prod_data.get("is_vegan", False),
         is_vegetarian=prod_data.get("is_vegetarian", False),
+        is_frozen=prod_data.get("is_frozen", False),
         energy_kj=nutrition.get("energy_kj", 0.0),
         energy_kcal=nutrition.get("energy_kcal", 0.0),
         fat_grams=nutrition.get("fat_grams", 0.0),

@@ -135,6 +135,7 @@ class ProductCatalogBase(BaseModel):
     nutriscore: Optional[str] = Field(None, max_length=5)
     is_vegetarian: bool = False
     is_vegan: bool = False
+    is_frozen: bool = False
 
     # 9 nutrition values in standard European order
     energy_kj: float = Field(default=0.0, ge=0.0)
@@ -163,6 +164,7 @@ class ProductCatalogUpdate(BaseModel):
     nutriscore: Optional[str] = None
     is_vegetarian: Optional[bool] = None
     is_vegan: Optional[bool] = None
+    is_frozen: Optional[bool] = None
     energy_kj: Optional[float] = Field(None, ge=0.0)
     energy_kcal: Optional[float] = Field(None, ge=0.0)
     fat_grams: Optional[float] = Field(None, ge=0.0)

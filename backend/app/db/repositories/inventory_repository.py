@@ -132,9 +132,11 @@ class InventoryRepository:
     ) -> int:
         """
         Automatically marks stocked items as DEPLETED (quantity = 0) once they reach
-        their predicted restock interval or the 30-day maximum shelf limit.
-        The item's learned restock_interval_days stays saved in the database while
-        the item is visually hidden from the active Dashboard and moved to Cart Suggestions.
+        their predicted restock interval:
+        - Regular fresh/pantry Food items are capped at 30 days (min(effective_interval, 30.0)).
+        - Frozen Food items (is_frozen=True) and Non-Food items (Household, Hygiene, Pet)
+          are exempt from the 30-day shelf cap and use their full restock interval
+          (up to 180 days, with a 45-day minimum default when marked frozen unless custom-set).
         """
         cur_now = now_utc or datetime.now(timezone.utc)
         if cur_now.tzinfo is None:
@@ -142,6 +144,8 @@ class InventoryRepository:
 
         active_items = (
             db.query(InventoryItem)
+            .join(ProductCatalog)
+            .options(joinedload(InventoryItem.product))
             .filter(InventoryItem.status == InventoryStatus.IN_STOCK)
             .all()
         )
@@ -160,7 +164,19 @@ class InventoryRepository:
                 if item.manual_interval_override is not None
                 else item.restock_interval_days
             )
-            cutoff_days = min(max_shelf_days, max(1.0, effective_interval or 7.0))
+
+            product = item.product
+            is_non_food = product is not None and product.category != ItemCategory.FOOD
+            is_frozen = product is not None and bool(getattr(product, "is_frozen", False))
+
+            if is_non_food or is_frozen:
+                # Exempt Frozen and Non-Food items from the 30-day cap (use full interval up to 180d)
+                base_interval = effective_interval or 45.0
+                if is_frozen and item.manual_interval_override is None and base_interval < 30.0:
+                    base_interval = 45.0
+                cutoff_days = min(180.0, max(1.0, base_interval))
+            else:
+                cutoff_days = min(max_shelf_days, max(1.0, effective_interval or 7.0))
 
             if days_elapsed >= cutoff_days:
                 item.status = InventoryStatus.DEPLETED

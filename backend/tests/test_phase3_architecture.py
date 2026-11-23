@@ -473,6 +473,61 @@ def test_checkin_midnight_batch_auto_depletion_and_cart_sync():
         ah_queue = next(q for q in suggestions_res.json()["queues"] if q["id"] == "AH")
         assert any(i["name"] == "Halfvolle Melk" for i in ah_queue["items"])
         assert any("synced / depleted" in i["subtext"] for i in ah_queue["items"])
+
+        # 5. User Story 3.4.5: Auto-detect frozen items from AH ('Diepvries') and OFF ('en:frozen-foods'),
+        # and exempt Frozen & Non-Food items from the 30-day shelf cap
+        from app.services.ah_client import detect_is_frozen
+
+        assert detect_is_frozen(main_cat="Diepvries", title="Blauwe bessen") is True
+        assert detect_is_frozen(categories_tags=["en:frozen-foods", "en:frozen-vegetables"]) is True
+        assert detect_is_frozen(main_cat="Zuivel", title="Halfvolle melk") is False
+
+        frozen_berries = ProductCatalog(
+            barcode="8710400000099",
+            name="Diepvries Aardbeien",
+            category=ItemCategory.FOOD,
+            preferred_store=PreferredStore.AH,
+            is_frozen=True,
+        )
+        dish_soap = ProductCatalog(
+            barcode="8710400000082",
+            name="Afwasmiddel Citroen",
+            category=ItemCategory.HOUSEHOLD,
+            preferred_store=PreferredStore.JUMBO,
+            is_frozen=False,
+        )
+        db.add_all([frozen_berries, dish_soap])
+        db.commit()
+        db.refresh(frozen_berries)
+        db.refresh(dish_soap)
+
+        # Stock both items 32 days ago with a 60-day restock interval
+        thirty_two_days_ago = datetime.now(timezone.utc) - timedelta(days=32)
+        frozen_inv = InventoryItem(
+            product_id=frozen_berries.id,
+            quantity=1,
+            status=InventoryStatus.IN_STOCK,
+            last_restocked_at=thirty_two_days_ago,
+            restock_interval_days=60.0,
+        )
+        soap_inv = InventoryItem(
+            product_id=dish_soap.id,
+            quantity=1,
+            status=InventoryStatus.IN_STOCK,
+            last_restocked_at=thirty_two_days_ago,
+            restock_interval_days=60.0,
+        )
+        db.add_all([frozen_inv, soap_inv])
+        db.commit()
+
+        # Running apply_auto_depletion at 32 days must NOT deplete the frozen berries or dish soap
+        InventoryRepository.apply_auto_depletion(db)
+        db.refresh(frozen_inv)
+        db.refresh(soap_inv)
+        assert frozen_inv.status == InventoryStatus.IN_STOCK
+        assert frozen_inv.quantity == 1
+        assert soap_inv.status == InventoryStatus.IN_STOCK
+        assert soap_inv.quantity == 1
     finally:
         db.close()
 

@@ -119,6 +119,24 @@
 - [x] **Step 1:** Add `POST /inventory/cart/sync/{store}` in `backend/app/routers/inventory.py` and `InventoryService.sync_store_cart(db, store)` to mark all items in the selected store queue (`AH`, `Jumbo`, `Lidl`) as `InventoryStatus.DEPLETED` (`quantity = 0`), removing them visually from the active Dashboard while retaining their database interval and keeping them in Cart Suggestions until scanned IN again.
 - [x] **Step 2:** Wire `handleSyncCart` in `frontend/src/pages/CartPage.jsx` to call `POST /inventory/cart/sync/{activeQueueId}`, refresh the Dashboard state in `App.jsx`, and display a `'Synced · waiting to scan in'` badge on synced items in the Cart view.
 
+#### User Story 3.4.4 — 7-Inch Card Tag Decluttering & Tap-to-Expand Details Drawer
+> **As a** kiosk user viewing the 7-inch touchscreen (`720×1280`) where action buttons occupy 2/5 of each card's width,  
+> **I want** compact single-letter Nutri-Score badges (`[A]`–`[E]`), secondary category/diet tags moved to the 2nd subtitle row (and hidden when `'Depleted · In Cart'` is displayed), plus the ability to tap a card's left info area to expand full product and nutrition details,  
+> **So that** product titles are never truncated or crowded out by multiple badges.
+
+- [x] **Step 1:** Update `frontend/src/components/GroceryCard.jsx` to shorten Nutri-Score badges to a colored square letter (`[A]`–`[E]`), hide Nutri-Score and Diet badges when `Depleted · In Cart` is shown, and move Category and Diet (`Vegan` / `Vegetarian`) labels into the 2nd subtitle line.
+- [x] **Step 2:** Add a tap-to-expand inline detail drawer on the left column of `GroceryCard.jsx` displaying the full untruncated product title, brand, barcode, storage type (`Frozen / Freezer` vs. `Pantry / Fridge`), and per-100g macro highlights (`kcal`, `Protein`, `Carbs`, `Sugar`, `Fat`, `Fiber`, `Salt`).
+
+#### User Story 3.4.5 — Frozen & Non-Food 30-Day Cap Exemption, AH/OFF Freezer Auto-Detection & Non-Blocking Depletion Banner
+> **As a** household user storing freezer items (frozen vegetables, fries, fruit) and non-food products (`Household`, `Hygiene`, `Pet`) that last longer than 30 days,  
+> **I want** GroceryPi to automatically detect frozen products from the Albert Heijn (`mainCategory: "Diepvries"`) and Open Food Facts (`frozen-foods`) APIs, allow toggling `Frozen / Freezer` in `EditItemModal`, exempt frozen and non-food items from the 30-day shelf cap, and show a non-blocking top banner on the Dashboard when items reach 75% / 100% of their cycle,  
+> **So that** long-lasting freezer and household items are never prematurely auto-depleted at 30 days and can be reviewed without blocking startup modals.
+
+- [x] **Step 1:** Add `is_frozen` (`Boolean`) to `ProductCatalog` in `backend/app/models.py`, `backend/app/schemas.py`, and `backend/app/database.py` (with automatic SQLite `ALTER TABLE` migration), and implement `detect_is_frozen()` in `backend/app/services/ah_client.py` to auto-detect freezer items from AH (`"Diepvries"`) and Open Food Facts (`"en:frozen-foods"`, `"nl:diepvries"`).
+- [x] **Step 2:** Add a **`Storage Type: Pantry / Fridge vs. Frozen (Freezer)`** toggle in `frontend/src/components/EditItemModal.jsx` and wire it through `PATCH /products/{barcode}` in `frontend/src/App.jsx`.
+- [x] **Step 3:** Update `InventoryRepository.apply_auto_depletion()` in `backend/app/db/repositories/inventory_repository.py` so the 30-day shelf cap applies only to non-frozen `Food` items, while `Frozen` and non-food (`Household`, `Hygiene`, `Pet`) items use their full restock interval (up to 180 days).
+- [x] **Step 4:** Add a non-blocking top review banner on `frontend/src/pages/DashboardPage.jsx` showing how many items reached `100%` (depleted / in cart) or `75%+` (running low) of their restock cycle with quick **Review Items** and **Dismiss** buttons.
+
 ---
 
 ## Phase 4 (Sprint 4): Supermarket API, Prediction Engine & Cart Automation

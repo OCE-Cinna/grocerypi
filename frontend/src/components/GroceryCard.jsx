@@ -10,8 +10,14 @@
  *   aligned directly under the 'Scan New Item' button.
  */
 
-import React from "react";
-import { FigmaMinus, FigmaPlus, FigmaEdit, FigmaTrash } from "./FigmaIcons";
+import React, { useState } from "react";
+import {
+  FigmaMinus,
+  FigmaPlus,
+  FigmaEdit,
+  FigmaTrash,
+  FigmaChevronDown,
+} from "./FigmaIcons";
 
 export default function GroceryCard({
   item,
@@ -21,6 +27,7 @@ export default function GroceryCard({
   onEdit,
   onDelete,
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const product = item.product || {};
   const qty = item.quantity ?? 1;
 
@@ -78,79 +85,100 @@ export default function GroceryCard({
   const effectiveInterval =
     item.manual_interval_override ?? item.restock_interval_days;
   const isDepleted = item.status === "DEPLETED" || qty <= 0;
+  const dietLabel = product.is_vegan
+    ? "Vegan"
+    : product.is_vegetarian
+    ? "Vegetarian"
+    : null;
 
   return (
     <div
       className={`border rounded-2xl shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-5 items-stretch transition-shadow hover:shadow-sm ${
         isDepleted
-          ? "bg-gray-50/90 border-gray-300 opacity-80"
+          ? "bg-gray-50/90 border-gray-300 opacity-85"
           : "bg-white border-gray-300/80"
       }`}
     >
-      {/* Left Details Column (Spans Columns 1–3) */}
-      <div className="md:col-span-3 p-5 sm:p-6 flex flex-col justify-center">
-        <div className="flex items-center justify-between gap-3">
+      {/* Left Details Column (Spans Columns 1–3; tap anywhere here to expand full details) */}
+      <div
+        onClick={() => setIsExpanded((prev) => !prev)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsExpanded((prev) => !prev);
+          }
+        }}
+        title="Tap to expand full product & nutrition details"
+        className="md:col-span-3 p-5 sm:p-6 flex flex-col justify-center cursor-pointer hover:bg-gray-50/60 transition-colors"
+      >
+        <div className="flex items-center justify-between gap-2.5">
           {/* Left-Aligned Group: Store Tag + Product Name */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {product.preferred_store && (
               <span className="h-6 min-w-[42px] px-2 rounded-md text-xs font-bold leading-none inline-flex items-center justify-center border border-gray-400 text-gray-700 bg-gray-50 shrink-0">
                 {product.preferred_store}
               </span>
             )}
 
-            <h3 className="text-xl sm:text-2xl font-bold text-gunmetal tracking-tight leading-snug truncate">
+            <h3
+              className={`text-xl sm:text-2xl font-bold text-gunmetal tracking-tight leading-snug ${
+                isExpanded ? "break-words" : "truncate"
+              }`}
+            >
               {cleanName}
             </h3>
-
-            {isDepleted && (
-              <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
-                Depleted · In Cart
-              </span>
-            )}
 
             {renderNutrientBadge()}
           </div>
 
-          {/* Right-Aligned Group: Diet, Nutri-Score, and Category Badge */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Diet Badge: Vegan or Vegetarian */}
-            {product.is_vegan ? (
-              <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-emerald-50 text-emerald-800 border border-emerald-300">
-                Vegan
+          {/* Right-Aligned Compact Badges (decluttered for 7-inch screen readability) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isDepleted ? (
+              /* When Depleted · In Cart, hide Nutri-Score and Diet badges so the product title is readable */
+              <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
+                Depleted · In Cart
               </span>
-            ) : product.is_vegetarian ? (
-              <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-green-50 text-green-800 border border-green-300">
-                Vegetarian
-              </span>
-            ) : null}
+            ) : (
+              <>
+                {product.is_frozen && (
+                  <span className="h-6 px-2 rounded-md text-xs font-bold leading-none inline-flex items-center bg-sky-50 text-sky-800 border border-sky-300">
+                    Frozen
+                  </span>
+                )}
 
-            {/* Nutri-Score Badge */}
-            {product.nutriscore && (
-              <span
-                className={`h-6 px-2 rounded-md text-[11px] font-black leading-none inline-flex items-center tracking-wider shadow-2xs ${
-                  product.nutriscore === "A"
-                    ? "bg-[#038141] text-white"
-                    : product.nutriscore === "B"
-                    ? "bg-[#85BB2F] text-white"
-                    : product.nutriscore === "C"
-                    ? "bg-[#FECB02] text-gunmetal font-extrabold"
-                    : product.nutriscore === "D"
-                    ? "bg-[#EE8100] text-white"
-                    : "bg-[#E63E11] text-white"
-                }`}
-                title={`Nutri-Score: Grade ${product.nutriscore}`}
-              >
-                Nutri-Score {product.nutriscore}
-              </span>
+                {/* Compact Single-Letter Nutri-Score Badge [A]–[E] */}
+                {product.nutriscore && (
+                  <span
+                    className={`w-6 h-6 rounded-md text-xs font-black leading-none inline-flex items-center justify-center shadow-2xs ${
+                      product.nutriscore === "A"
+                        ? "bg-[#038141] text-white"
+                        : product.nutriscore === "B"
+                        ? "bg-[#85BB2F] text-white"
+                        : product.nutriscore === "C"
+                        ? "bg-[#FECB02] text-gunmetal font-extrabold"
+                        : product.nutriscore === "D"
+                        ? "bg-[#EE8100] text-white"
+                        : "bg-[#E63E11] text-white"
+                    }`}
+                    title={`Nutri-Score ${product.nutriscore}`}
+                  >
+                    {product.nutriscore}
+                  </span>
+                )}
+              </>
             )}
 
-            {/* Category Badge (Pinned flush right) */}
-            <span className="h-6 min-w-[84px] px-2.5 rounded-md text-xs font-semibold leading-none inline-flex items-center justify-center bg-gray-100 text-gray-700 border border-gray-300">
-              {product.category || "Food"}
-            </span>
+            <FigmaChevronDown
+              className={`w-4 h-4 fill-gray-400 transition-transform ml-0.5 ${
+                isExpanded ? "rotate-180 fill-gunmetal" : ""
+              }`}
+            />
           </div>
         </div>
 
+        {/* Second Subtitle Line: Restock Date, Size, Interval, Category, Diet, and Brand */}
         <p className="text-sm text-kioskGray font-normal mt-1.5 leading-snug">
           Last restocked · {formatDate(item.last_restocked_at)}
           {product.package_size && (
@@ -161,10 +189,63 @@ export default function GroceryCard({
               · every {Math.round(effectiveInterval)}d
             </span>
           )}
+          <span className="ml-2 text-gray-600 font-medium">
+            · {product.category || "Food"}
+          </span>
+          {!isDepleted && dietLabel && (
+            <span className="ml-2 text-emerald-700 font-semibold">
+              · {dietLabel}
+            </span>
+          )}
           {displayBrand && (
             <span className="ml-2 text-gray-500">· {displayBrand}</span>
           )}
         </p>
+
+        {/* Expandable Inline Product & Nutrition Detail Drawer */}
+        {isExpanded && (
+          <div className="mt-3.5 pt-3 border-t border-gray-200 text-xs text-gunmetal space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-mono">
+                EAN: {product.barcode || "N/A"}
+              </span>
+              <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-semibold">
+                Category: {product.category || "Food"}
+              </span>
+              <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-semibold">
+                Storage:{" "}
+                {product.is_frozen
+                  ? "Frozen (Freezer · No 30d Cap)"
+                  : product.category && product.category !== "Food"
+                  ? "Non-Food (No 30d Cap)"
+                  : "Pantry / Fridge (30d Cap)"}
+              </span>
+              {dietLabel && (
+                <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold">
+                  {dietLabel}
+                </span>
+              )}
+              {product.nutriscore && (
+                <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-bold">
+                  Nutri-Score {product.nutriscore}
+                </span>
+              )}
+            </div>
+
+            {(product.category === "Food" || !product.category) && (
+              <div className="flex flex-wrap items-center gap-1.5 text-gray-600">
+                <span className="font-bold text-gunmetal">Per 100g:</span>
+                <span>{Math.round(product.energy_kcal || 0)} kcal</span>
+                <span>· Protein {product.protein_grams ?? 0}g</span>
+                <span>· Carbs {product.carbohydrate_grams ?? 0}g</span>
+                <span>· Sugar {product.sugar_grams ?? 0}g</span>
+                <span>· Fat {product.fat_grams ?? 0}g</span>
+                <span>· Fiber {product.fiber_grams ?? 0}g</span>
+                <span>· Salt {product.salt_grams ?? 0}g</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Right Segmented Touch Controls (Spans Columns 4–5) */}
