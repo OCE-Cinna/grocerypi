@@ -87,8 +87,8 @@
 > **I want to** test the physical GroceryPi kiosk flow with Partner P., peers (Koen, Evy, fellow students), and teachers using a structured 2-minute evaluation form,  
 > **So that** I can identify friction points and prioritize Sprint 4 & 5 improvements with real evidence.
 
-- [ ] **Step 1:** Conduct 2-minute hands-on user test sessions using the standardized User Testing Form.
-- [ ] **Step 2:** Summarize quantitative ratings and qualitative quotes in the Sprint 3 Devlog and Feedback Log.
+- [x] **Step 1:** Conduct 2-minute hands-on user test sessions using the standardized User Testing Form *(Session #1 completed on 23 Nov 2026 with Primary Stakeholder Peter on 7-inch Raspberry Pi kiosk; peer/coach sessions scheduled for 24 Nov Demo Market)*.
+- [x] **Step 2:** Summarize quantitative ratings and qualitative quotes in the Sprint 3 Devlog and Feedback Log.
 - [ ] **Step 3:** Book validation check-ins with **Patrick** (review refactored backend folders) and **Pieter** (review Norman Nielsen alignment & user test findings) and upload snapshot to Portflow.
 
 ---
@@ -208,3 +208,38 @@
 - [x] **Step 1:** Optimize mobile viewport layouts (`< 640px`) across `Navbar.jsx`, `DashboardPage.jsx`, and `CartPage.jsx` (compact responsive mobile navigation and status badges, thumb-friendly store queue tabs, and locked scanning outside the physical kiosk).
 - [x] **Step 2:** Add an in-store mobile checklist / restock interaction in `CartPage.jsx` (`POST /cart/restock/{item_id}`, `"Bought (+1)"` button) allowing mobile shoppers to mark suggested items as bought/restocked in real time.
 - [x] **Step 3:** Test end-to-end hashed-password login + live database and cart restock sync (`test_phase3_architecture.py`).
+
+---
+
+### Epic 4.5 — Primary Stakeholder (Peter) User Test Action Items (23 Nov 2026 Kiosk Session)
+
+#### User Story 4.5.1 — Pivot from "Live Stock Inventory" to "Check-In Batch Staging & Purchase History Log" (#1 Make-or-Break Priority)
+> **As a** household user who never wants to manage live pantry stock counts,  
+> **I want** the main screen to act as a **"Current Check-In Batch"** (staging items just scanned in after a shopping trip) that clears upon tapping **"Finish Check-In"** (or automatically at midnight / configurable time) into a searchable **"Purchase History"** log (`"You submitted X items on [Date · Time]"`),  
+> **So that** the app functions purely as a low-friction purchase tracker and restock predictor rather than an inventory manager.
+
+- [ ] **Step 1:** Reframe the Dashboard into a **Check-In Batch Staging List** with a prominent **"Finish & Submit Batch"** button (replacing `"Your kitchen, stocked."` hero copy) and move the Search bar into a dedicated **Purchase History** tab/panel showing timestamped past check-in batches.
+- [ ] **Step 2:** Dynamically adapt or hide the secondary filter bar based on the active Category (e.g., show `DIET: All / Vegetarian / Vegan` only when `Food` is selected, and align filter buttons cleanly without the offsetting `DIET:` label).
+
+#### User Story 4.5.2 — Scan Overlay Timer Customization (10–30s), Rapid-Scan Animation Reset & Settings Menu with GitHub Update Badge
+> **As a** user scanning multiple groceries in a row on the 7-inch kiosk,  
+> **I want** the Scan Feedback Overlay to stay visible for a configurable `10–30 seconds`, restart its countdown animation cleanly when scanning back-to-back items rapidly, and have an explicit **Settings / Menu** button with an hourly GitHub **`Update Available (!)`** indicator,  
+> **So that** I always have enough time to read scan details and can see when a new GitHub update is ready to pull.
+
+- [ ] **Step 1:** Key the countdown bar animation in `ScanFeedbackOverlay.jsx` to `scanEvent.scan_id` (so rapid consecutive scans restart the timer from 100%) and increase the default auto-dismiss duration to `12–15s` (configurable between `10s` and `30s` in Settings).
+- [ ] **Step 2:** Add an explicit **Menu / Settings** button in `Navbar.jsx` and a background check (`GET /system/update-status` every hour) that displays an **`! Update Available`** badge when new commits exist on `origin`.
+
+#### User Story 4.5.3 — Edit Modal Interval Restoration, Quick Presets, Unit Selector & On-Screen Touch Keyboard
+> **As a** kiosk user editing an item on the 7-inch touchscreen,  
+> **I want** toggling `Frozen (45d)` back to `Pantry / Fridge` to restore the original pantry interval, quick interval preset buttons (`3d`, `7d`, `14d`, `30d`, `45d`), a constrained package unit selector (`g`, `kg`, `ml`, `L`, `pack`, `unit`), and an automatic on-screen touch keyboard when tapping text fields,  
+> **So that** I never have to tap `-` 40 times or need a physical keyboard on Raspberry Pi OS.
+
+- [ ] **Step 1:** Save the previous non-frozen interval in `EditItemModal.jsx` so switching `Frozen → Pantry / Fridge` restores it immediately, add quick-tap preset pills (`3d`, `5d`, `7d`, `14d`, `30d`, `45d`), and split Package Size into a numeric input + fixed unit dropdown.
+- [ ] **Step 2:** Integrate an on-screen virtual touch keyboard (or Raspberry Pi OS `wvkbd` / `squeekboard` / React touch keyboard modal) when focusing Product Name or Package Size inputs, and round all expanded card nutrition macros in `GroceryCard.jsx` to at most 2 decimal places (`Number(val.toFixed(2))`).
+
+#### User Story 4.5.4 — Inline Expandable Macro Item Lists in Nutrition View
+> **As a** user exploring nutritional breakdowns on the Nutrition screen,  
+> **I want** clear visual affordance that macro bars are interactive, and tapping a macro bar to unfold a condensed list of matching items **inline inside the Nutrition screen** (rather than jumping back to the Dashboard),  
+> **So that** Dashboard sorting and Nutrition exploration stay clean and non-redundant.
+
+- [ ] **Step 1:** Add an explicit `"Tap any nutrient bar to view matching items"` hint in `NutritionPage.jsx` and render an inline, condensed accordion list of items sorted by the tapped macro directly beneath the chart.
