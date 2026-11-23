@@ -237,16 +237,28 @@ export default function App() {
   };
 
   /**
-   * Permanently deletes an item from the kitchen inventory after confirmation.
+   * Marks a stocked item as DEPLETED (0 units) and hides it from the active
+   * Dashboard while preserving its learned restock interval for Cart Suggestions.
+   * If the item is already depleted (viewed under 'Show Depleted'), permanently
+   * deletes it from the database.
    */
   const handleConfirmDelete = async (item) => {
     try {
-      await api.delete(`/inventory/${item.id}`);
+      const isAlreadyDepleted =
+        item.status === "DEPLETED" || (item.quantity ?? 1) <= 0;
+      if (isAlreadyDepleted) {
+        await api.delete(`/inventory/${item.id}`);
+      } else {
+        await api.patch(`/inventory/${item.id}`, {
+          quantity: 0,
+          status: "DEPLETED",
+        });
+      }
       setDeleteModalItem(null);
       fetchInventory(activeSortNutrient);
       fetchAuxData();
     } catch (err) {
-      console.error("Delete error:", err);
+      console.error("Delete/deplete error:", err);
     }
   };
 

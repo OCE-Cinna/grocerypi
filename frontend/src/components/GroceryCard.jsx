@@ -114,14 +114,8 @@ export default function GroceryCard({
         className="md:col-span-3 p-5 sm:p-6 flex flex-col justify-center cursor-pointer hover:bg-gray-50/60 transition-colors"
       >
         <div className="flex items-center justify-between gap-2.5">
-          {/* Left-Aligned Group: Store Tag + Product Name */}
+          {/* Top Row: Clean, Uncluttered Product Name */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            {product.preferred_store && (
-              <span className="h-6 min-w-[42px] px-2 rounded-md text-xs font-bold leading-none inline-flex items-center justify-center border border-gray-400 text-gray-700 bg-gray-50 shrink-0">
-                {product.preferred_store}
-              </span>
-            )}
-
             <h3
               className={`text-xl sm:text-2xl font-bold text-gunmetal tracking-tight leading-snug ${
                 isExpanded ? "break-words" : "truncate"
@@ -133,54 +127,30 @@ export default function GroceryCard({
             {renderNutrientBadge()}
           </div>
 
-          {/* Right-Aligned Compact Badges (decluttered for 7-inch screen readability) */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {isDepleted ? (
-              /* When Depleted · In Cart, hide Nutri-Score and Diet badges so the product title is readable */
+          {/* Right Indicator: Only 'Depleted · In Cart' (when depleted) + Expand Chevron */}
+          <div className="flex items-center gap-2 shrink-0">
+            {isDepleted && (
               <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-amber-50 text-amber-800 border border-amber-300 shrink-0">
                 Depleted · In Cart
               </span>
-            ) : (
-              <>
-                {product.is_frozen && (
-                  <span className="h-6 px-2 rounded-md text-xs font-bold leading-none inline-flex items-center bg-sky-50 text-sky-800 border border-sky-300">
-                    Frozen
-                  </span>
-                )}
-
-                {/* Compact Single-Letter Nutri-Score Badge [A]–[E] */}
-                {product.nutriscore && (
-                  <span
-                    className={`w-6 h-6 rounded-md text-xs font-black leading-none inline-flex items-center justify-center shadow-2xs ${
-                      product.nutriscore === "A"
-                        ? "bg-[#038141] text-white"
-                        : product.nutriscore === "B"
-                        ? "bg-[#85BB2F] text-white"
-                        : product.nutriscore === "C"
-                        ? "bg-[#FECB02] text-gunmetal font-extrabold"
-                        : product.nutriscore === "D"
-                        ? "bg-[#EE8100] text-white"
-                        : "bg-[#E63E11] text-white"
-                    }`}
-                    title={`Nutri-Score ${product.nutriscore}`}
-                  >
-                    {product.nutriscore}
-                  </span>
-                )}
-              </>
             )}
 
             <FigmaChevronDown
-              className={`w-4 h-4 fill-gray-400 transition-transform ml-0.5 ${
+              className={`w-4 h-4 fill-gray-400 transition-transform ${
                 isExpanded ? "rotate-180 fill-gunmetal" : ""
               }`}
             />
           </div>
         </div>
 
-        {/* Second Subtitle Line: Restock Date, Size, Interval, Category, Diet, and Brand */}
+        {/* Second Subtitle Line: Minimalist Text Metadata (switches to Pill Tags when expanded) */}
         <p className="text-sm text-kioskGray font-normal mt-1.5 leading-snug">
-          Last restocked · {formatDate(item.last_restocked_at)}
+          {!isExpanded && product.preferred_store && (
+            <span className="font-bold text-gunmetal mr-2">
+              {product.preferred_store} ·
+            </span>
+          )}
+          <span>Last restocked · {formatDate(item.last_restocked_at)}</span>
           {product.package_size && (
             <span className="ml-2 text-gray-500">· {product.package_size}</span>
           )}
@@ -189,47 +159,84 @@ export default function GroceryCard({
               · every {Math.round(effectiveInterval)}d
             </span>
           )}
-          <span className="ml-2 text-gray-600 font-medium">
-            · {product.category || "Food"}
-          </span>
-          {!isDepleted && dietLabel && (
-            <span className="ml-2 text-emerald-700 font-semibold">
-              · {dietLabel}
-            </span>
+          {!isExpanded && (
+            <>
+              <span className="ml-2 text-gray-600 font-medium">
+                · {product.category || "Food"}
+              </span>
+              {!isDepleted && product.is_frozen && (
+                <span className="ml-2 text-sky-700 font-semibold">· Frozen</span>
+              )}
+              {!isDepleted && dietLabel && (
+                <span className="ml-2 text-emerald-700 font-semibold">
+                  · {dietLabel}
+                </span>
+              )}
+              {!isDepleted && product.nutriscore && (
+                <span className="ml-2 text-gunmetal font-semibold">
+                  · Nutri-Score {product.nutriscore}
+                </span>
+              )}
+            </>
           )}
           {displayBrand && (
             <span className="ml-2 text-gray-500">· {displayBrand}</span>
           )}
         </p>
 
-        {/* Expandable Inline Product & Nutrition Detail Drawer */}
+        {/* Expandable Inline Product & Nutrition Detail Drawer (Adaptive Tag/Pill Format) */}
         {isExpanded && (
-          <div className="mt-3.5 pt-3 border-t border-gray-200 text-xs text-gunmetal space-y-2">
+          <div className="mt-3.5 pt-3 border-t border-gray-200 text-xs text-gunmetal space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-mono">
-                EAN: {product.barcode || "N/A"}
+              {product.preferred_store && (
+                <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center border border-gray-400 text-gunmetal bg-gray-100">
+                  Store: {product.preferred_store}
+                </span>
+              )}
+
+              <span className="h-6 px-2.5 rounded-md text-xs font-semibold leading-none inline-flex items-center bg-gray-100 text-gray-700 border border-gray-300">
+                {product.category || "Food"}
               </span>
-              <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-semibold">
-                Category: {product.category || "Food"}
-              </span>
-              <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-semibold">
-                Storage:{" "}
-                {product.is_frozen
-                  ? "Frozen (Freezer · No 30d Cap)"
-                  : product.category && product.category !== "Food"
-                  ? "Non-Food (No 30d Cap)"
-                  : "Pantry / Fridge (30d Cap)"}
-              </span>
+
+              {product.is_frozen ? (
+                <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-sky-50 text-sky-800 border border-sky-300">
+                  Frozen · Freezer (No 30d Cap)
+                </span>
+              ) : (
+                <span className="h-6 px-2.5 rounded-md text-xs font-semibold leading-none inline-flex items-center bg-gray-100 text-gray-700 border border-gray-300">
+                  {product.category && product.category !== "Food"
+                    ? "Non-Food (No 30d Cap)"
+                    : "Pantry / Fridge (30d Cap)"}
+                </span>
+              )}
+
               {dietLabel && (
-                <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold">
+                <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-emerald-50 text-emerald-800 border border-emerald-300">
                   {dietLabel}
                 </span>
               )}
+
               {product.nutriscore && (
-                <span className="px-2 py-1 rounded-md bg-gray-100 border border-gray-300 font-bold">
+                <span
+                  className={`h-6 px-2.5 rounded-md text-xs font-black leading-none inline-flex items-center shadow-2xs ${
+                    product.nutriscore === "A"
+                      ? "bg-[#038141] text-white"
+                      : product.nutriscore === "B"
+                      ? "bg-[#85BB2F] text-white"
+                      : product.nutriscore === "C"
+                      ? "bg-[#FECB02] text-gunmetal font-extrabold"
+                      : product.nutriscore === "D"
+                      ? "bg-[#EE8100] text-white"
+                      : "bg-[#E63E11] text-white"
+                  }`}
+                >
                   Nutri-Score {product.nutriscore}
                 </span>
               )}
+
+              <span className="h-6 px-2.5 rounded-md text-xs font-mono leading-none inline-flex items-center bg-gray-100 text-gray-600 border border-gray-300">
+                EAN: {product.barcode || "N/A"}
+              </span>
             </div>
 
             {(product.category === "Food" || !product.category) && (
