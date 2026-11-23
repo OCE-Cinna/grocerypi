@@ -561,6 +561,28 @@ def test_checkin_midnight_batch_auto_depletion_and_cart_sync():
         sync_payload = ah_gw.sync_cart([{"name": "Halfvolle Melk"}])
         assert sync_payload["store"] == "AH"
         assert sync_payload["synced_count"] == 1
+
+        # 7. Epic 4.2: Empirical interval calculation, predicted_depletion_at, and PREDICTED_LOW transition
+        from app.models import ScanLog, ScanStatus
+
+        # Place frozen_inv at 80% of its 60-day cycle (48 days elapsed -> >= 75%, < 100%)
+        frozen_inv.last_restocked_at = datetime.now(timezone.utc) - timedelta(days=48)
+        db.commit()
+        InventoryRepository.apply_auto_depletion(db)
+        db.refresh(frozen_inv)
+        assert frozen_inv.status == InventoryStatus.PREDICTED_LOW
+        assert frozen_inv.predicted_depletion_at is not None
+
+        # Check empirical interval calculation across historical ScanLog dates
+        t1 = datetime.now(timezone.utc) - timedelta(days=20)
+        t2 = datetime.now(timezone.utc) - timedelta(days=10)
+        db.add_all([
+            ScanLog(raw_barcode=dish_soap.barcode, product_id=dish_soap.id, status=ScanStatus.SUCCESS, scanned_at=t1),
+            ScanLog(raw_barcode=dish_soap.barcode, product_id=dish_soap.id, status=ScanStatus.SUCCESS, scanned_at=t2),
+        ])
+        db.commit()
+        emp_iv = PredictionEngine.calculate_empirical_interval_days(db, dish_soap.id, current_interval=10.0)
+        assert 9.5 <= emp_iv <= 10.5
     finally:
         db.close()
 

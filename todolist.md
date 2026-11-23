@@ -162,9 +162,9 @@
 > **I want** the backend to automatically recalculate an item's average consumption interval (`Interval = Days / Units`) every time I scan it IN,  
 > **So that** my restock predictions adapt to how fast we actually consume milk, eggs, or coffee.
 
-- [ ] **Step 1:** Enhance `InventoryService.ingest_scan` and `PredictionEngine` (`backend/app/services/prediction/prediction.py`) to compute the elapsed days between historical `ScanLog` / `PurchaseOrder` timestamps for that `product_id`.
-- [ ] **Step 2:** Update `InventoryItem.restock_interval_days` using a rolling average of scan-in intervals, and compute `predicted_depletion_at = last_restocked_at + timedelta(days=effective_interval * quantity)`.
-- [ ] **Step 3:** Automatically transition `InventoryItem.status` from `IN_STOCK` → `PREDICTED_LOW` (`interval_ratio >= 0.75`) → `DEPLETED` (`interval_ratio >= 1.0`), surfacing urgency badges on both Dashboard and Cart views.
+- [x] **Step 1:** Enhance `InventoryService.ingest_scan` and `PredictionEngine` (`backend/app/services/prediction/prediction.py`) to compute the elapsed days between historical `ScanLog` / `PurchaseOrder` timestamps for that `product_id`.
+- [x] **Step 2:** Update `InventoryItem.restock_interval_days` using a rolling average of scan-in intervals, and compute `predicted_depletion_at = last_restocked_at + timedelta(days=effective_interval * quantity)`.
+- [x] **Step 3:** Automatically transition `InventoryItem.status` from `IN_STOCK` → `PREDICTED_LOW` (`interval_ratio >= 0.75`) → `DEPLETED` (`interval_ratio >= 1.0`), surfacing urgency badges on both Dashboard and Cart views.
 
 ---
 

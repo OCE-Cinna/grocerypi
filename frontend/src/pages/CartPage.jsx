@@ -195,11 +195,19 @@ export default function CartPage({ onCartSynced }) {
                         {cleanName}
                       </h3>
                       {(item.current_quantity === 0 ||
-                        item.subtext?.includes("synced / depleted")) && (
+                        item.subtext?.includes("synced / depleted")) ? (
                         <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-limeCream/40 text-gunmetal border border-limeCream-dark/40">
                           Synced · waiting to scan in
                         </span>
-                      )}
+                      ) : item.urgency === "high" ? (
+                        <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-dustyRose/40 text-gunmetal border border-dustyRose-dark/40">
+                          Due now
+                        </span>
+                      ) : item.urgency === "medium" ? (
+                        <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-amber-50 text-amber-800 border border-amber-300">
+                          Running low · ≥75%
+                        </span>
+                      ) : null}
                     </div>
                     <p className="text-sm text-kioskGray mt-0.5 font-normal">
                       {displayBrand && <span className="font-medium text-gray-600">{displayBrand} · </span>}

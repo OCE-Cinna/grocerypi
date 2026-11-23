@@ -9,7 +9,7 @@ kitchen:
   deleting items, and saving scan history.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session, joinedload
@@ -111,12 +111,15 @@ class InventoryRepository:
 
             inv_item.last_restocked_at = cur_now
             inv_item.status = InventoryStatus.IN_STOCK
+            eff_iv = inv_item.manual_interval_override or inv_item.restock_interval_days or default_interval_days
+            inv_item.predicted_depletion_at = cur_now + timedelta(days=float(eff_iv) * max(1, inv_item.quantity))
         else:
             inv_item = InventoryItem(
                 product_id=product_id,
                 quantity=1,
                 status=InventoryStatus.IN_STOCK,
                 last_restocked_at=cur_now,
+                predicted_depletion_at=cur_now + timedelta(days=float(default_interval_days)),
                 restock_interval_days=default_interval_days,
             )
             db.add(inv_item)
@@ -146,11 +149,17 @@ class InventoryRepository:
             db.query(InventoryItem)
             .join(ProductCatalog)
             .options(joinedload(InventoryItem.product))
-            .filter(InventoryItem.status == InventoryStatus.IN_STOCK)
+            .filter(
+                InventoryItem.status.in_([
+                    InventoryStatus.IN_STOCK,
+                    InventoryStatus.PREDICTED_LOW,
+                ])
+            )
             .all()
         )
 
         depleted_count = 0
+        changed = False
         for item in active_items:
             last_dt = item.last_restocked_at
             if not last_dt:
@@ -178,12 +187,25 @@ class InventoryRepository:
             else:
                 cutoff_days = min(max_shelf_days, max(1.0, effective_interval or 7.0))
 
+            predicted_dt = last_dt + timedelta(days=float(cutoff_days) * max(1, item.quantity or 1))
+            if item.predicted_depletion_at != predicted_dt:
+                item.predicted_depletion_at = predicted_dt
+                changed = True
+
+            interval_ratio = days_elapsed / max(1.0, cutoff_days)
             if days_elapsed >= cutoff_days:
                 item.status = InventoryStatus.DEPLETED
                 item.quantity = 0
                 depleted_count += 1
+                changed = True
+            elif interval_ratio >= 0.75 and item.status != InventoryStatus.PREDICTED_LOW:
+                item.status = InventoryStatus.PREDICTED_LOW
+                changed = True
+            elif interval_ratio < 0.75 and item.status != InventoryStatus.IN_STOCK:
+                item.status = InventoryStatus.IN_STOCK
+                changed = True
 
-        if depleted_count > 0:
+        if changed:
             db.commit()
         return depleted_count
 

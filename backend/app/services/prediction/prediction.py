@@ -7,7 +7,7 @@ they were last scanned in, and groups items that need restocking by store
 (Albert Heijn, Jumbo, and Lidl).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import re
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -17,6 +17,78 @@ from app import models, schemas
 
 class PredictionEngine:
     """Calculates which kitchen items are running low and sorts them into store shopping lists."""
+
+    @staticmethod
+    def compute_predicted_depletion_at(
+        last_restocked_at: datetime,
+        effective_interval_days: float,
+        quantity: int = 1,
+    ) -> datetime:
+        """
+        Calculates the predicted date and time when the current stock of an item
+        will run out: last_restocked_at + timedelta(days=effective_interval * quantity).
+        """
+        base_dt = (
+            last_restocked_at
+            if last_restocked_at.tzinfo is not None
+            else last_restocked_at.replace(tzinfo=timezone.utc)
+        )
+        total_days = max(1.0, float(effective_interval_days or 7.0)) * max(1, int(quantity or 1))
+        return base_dt + timedelta(days=total_days)
+
+    @staticmethod
+    def calculate_empirical_interval_days(
+        db: Session,
+        product_id: int,
+        current_interval: float = 7.0,
+    ) -> float:
+        """
+        Calculates an item's rolling restock interval in days from historical
+        ScanLog and PurchaseOrder timestamps for that product_id.
+        """
+        timestamps: List[datetime] = []
+
+        scan_rows = (
+            db.query(models.ScanLog.scanned_at)
+            .filter(
+                models.ScanLog.product_id == product_id,
+                models.ScanLog.status == models.ScanStatus.SUCCESS,
+            )
+            .order_by(models.ScanLog.scanned_at.asc())
+            .all()
+        )
+        for (dt,) in scan_rows:
+            if dt:
+                timestamps.append(dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc))
+
+        order_rows = (
+            db.query(models.PurchaseOrder.order_date)
+            .join(models.PurchaseOrderItem, models.PurchaseOrderItem.order_id == models.PurchaseOrder.id)
+            .filter(models.PurchaseOrderItem.product_id == product_id)
+            .order_by(models.PurchaseOrder.order_date.asc())
+            .all()
+        )
+        for (dt,) in order_rows:
+            if dt:
+                timestamps.append(dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc))
+
+        timestamps.sort()
+        # Collapse same-day timestamps so multi-pack scans on the same day count as one restock event
+        distinct_days: List[datetime] = []
+        for dt in timestamps:
+            if not distinct_days or dt.astimezone().date() != distinct_days[-1].astimezone().date():
+                distinct_days.append(dt)
+
+        if len(distinct_days) < 2:
+            return round(float(current_interval or 7.0), 1)
+
+        gaps = [
+            max(1.0, min(180.0, (distinct_days[i] - distinct_days[i - 1]).total_seconds() / 86400.0))
+            for i in range(1, len(distinct_days))
+        ]
+        observed_avg = sum(gaps) / len(gaps)
+        base = float(current_interval or observed_avg)
+        return round(0.7 * base + 0.3 * observed_avg, 1)
 
     def get_cart_replenishment_suggestions(
         self,

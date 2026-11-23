@@ -164,6 +164,11 @@ export default function GroceryCard({
               <span className="ml-2 text-gray-600 font-medium">
                 · {product.category || "Food"}
               </span>
+              {!isDepleted && item.status === "PREDICTED_LOW" && (
+                <span className="ml-2 text-amber-700 font-semibold">
+                  · Running low
+                </span>
+              )}
               {!isDepleted && product.is_frozen && (
                 <span className="ml-2 text-sky-700 font-semibold">· Frozen</span>
               )}
@@ -207,6 +212,12 @@ export default function GroceryCard({
                   {product.category && product.category !== "Food"
                     ? "Non-Food (No 30d Cap)"
                     : "Pantry / Fridge (30d Cap)"}
+                </span>
+              )}
+
+              {!isDepleted && item.status === "PREDICTED_LOW" && (
+                <span className="h-6 px-2.5 rounded-md text-xs font-bold leading-none inline-flex items-center bg-amber-50 text-amber-800 border border-amber-300">
+                  Running Low · ≥75% Cycle
                 </span>
               )}
 
