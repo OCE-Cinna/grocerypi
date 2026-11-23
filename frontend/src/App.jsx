@@ -16,6 +16,7 @@ import ScanFeedbackOverlay from "./components/ScanFeedbackOverlay";
 import DeleteConfirmModal from "./components/DeleteConfirmModal";
 import EditItemModal from "./components/EditItemModal";
 import ScanModal from "./components/ScanModal";
+import Modal from "./components/Modal";
 import api from "./api/client";
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
   const [deleteModalItem, setDeleteModalItem] = useState(null);
   const [editModalItem, setEditModalItem] = useState(null);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
   const [scannerStatus, setScannerStatus] = useState("demo");
 
   /**
@@ -240,9 +242,22 @@ export default function App() {
   };
 
   /**
-   * Exits full-screen Chromium kiosk mode when the user taps the Home button.
+   * Refreshes and restarts the application by resetting to the Dashboard,
+   * re-fetching database records, and reloading the browser page.
    */
-  const handleHomeExit = async () => {
+  const handleRestartApp = async () => {
+    setIsSystemModalOpen(false);
+    setActiveTab("dashboard");
+    setActiveSortNutrient(null);
+    await Promise.allSettled([fetchInventory(null), fetchAuxData()]);
+    window.location.reload();
+  };
+
+  /**
+   * Exits full-screen Chromium kiosk mode to return to the Raspberry Pi OS desktop.
+   */
+  const handleConfirmExitKiosk = async () => {
+    setIsSystemModalOpen(false);
     try {
       await api.post("/system/exit-kiosk");
     } catch (err) {
@@ -259,7 +274,7 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onHome={handleHomeExit}
+        onHome={() => setIsSystemModalOpen(true)}
         scannerStatus={scannerStatus}
         storesStatus="not connected"
       />
@@ -314,6 +329,40 @@ export default function App() {
         onScanBarcode={handleScanBarcode}
         sampleProducts={sampleProducts}
       />
+
+      {/* Logo Button System Menu Modal (Refresh/Restart vs. Close to Raspberry Pi OS Desktop) */}
+      <Modal
+        isOpen={isSystemModalOpen}
+        onClose={() => setIsSystemModalOpen(false)}
+        title="GroceryPi System Menu"
+        subtitle="Would you like to refresh and restart the application, or close the kiosk to return to the Raspberry Pi OS desktop?"
+      >
+        <div className="space-y-3.5">
+          <button
+            type="button"
+            onClick={handleRestartApp}
+            className="w-full h-[74px] rounded-2xl bg-gunmetal hover:bg-gunmetal-dark text-white font-bold text-xl transition-all active:scale-98 flex items-center justify-center shadow-sm cursor-pointer"
+          >
+            Refresh / Restart Application
+          </button>
+
+          <button
+            type="button"
+            onClick={handleConfirmExitKiosk}
+            className="w-full h-[74px] rounded-2xl bg-dustyRose hover:bg-dustyRose-dark text-gunmetal font-bold text-xl transition-all active:scale-98 flex items-center justify-center shadow-sm cursor-pointer"
+          >
+            Close to Desktop (Raspberry Pi OS)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsSystemModalOpen(false)}
+            className="w-full h-[64px] rounded-2xl border-2 border-gunmetal bg-transparent hover:bg-gray-50 text-gunmetal font-bold text-lg transition-all active:scale-98 flex items-center justify-center cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
