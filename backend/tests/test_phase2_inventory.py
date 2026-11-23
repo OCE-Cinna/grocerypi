@@ -48,6 +48,7 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def setup_database():
     """Creates fresh database tables and adds 2 sample products before each test runs."""
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
 
