@@ -226,6 +226,10 @@ class BarcodeScanRequest(BaseModel):
     """Data sent to the backend when a barcode is scanned or typed in."""
     barcode: str = Field(..., min_length=3, max_length=64, description="Scanned barcode text")
     device_info: Optional[str] = Field(default="Raspberry Pi Camera v3", max_length=100)
+    confirm_unknown: bool = Field(
+        default=False,
+        description="When True, confirms adding an unrecognized barcode as a custom placeholder item.",
+    )
 
 
 class BarcodeScanResponse(BaseModel):

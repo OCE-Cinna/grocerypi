@@ -105,7 +105,8 @@ export default function App() {
             fetchInventory(activeSortNutrient);
             fetchAuxData();
           } else if (event.scan_status === "UNKNOWN_BARCODE") {
-            alert(event.message || `Barcode '${event.barcode}' not in catalog.`);
+            setScanFeedbackEvent(event);
+            setIsScanModalOpen(false);
           }
         }
       } catch (err) {
@@ -119,24 +120,40 @@ export default function App() {
   /**
    * Sends a manually typed or sample barcode scan to the backend.
    */
-  const handleScanBarcode = async (barcode) => {
+  const handleScanBarcode = async (barcode, confirmUnknown = false) => {
     try {
       const res = await api.post("/inventory/scan", {
         barcode: barcode.trim(),
         device_info: "Raspberry Pi Kiosk Interface",
+        confirm_unknown: confirmUnknown,
       });
 
       if (res.data.scan_status === "SUCCESS") {
         setScanFeedbackEvent(res.data);
         fetchInventory(activeSortNutrient);
         fetchAuxData();
+        if (confirmUnknown && res.data.inventory_item) {
+          setScanFeedbackEvent(null);
+          setEditModalItem({
+            ...res.data.inventory_item,
+            product: res.data.product,
+          });
+        }
       } else {
-        alert(res.data.message || `Barcode '${barcode}' not in catalog.`);
+        setScanFeedbackEvent(res.data);
       }
     } catch (err) {
       console.error("Scan error:", err);
       alert("Failed to process scan event.");
     }
+  };
+
+  /**
+   * Confirms adding an unrecognized barcode as a custom product and opens EditItemModal
+   * so the user can give it a clear name and store tag.
+   */
+  const handleConfirmUnknownBarcode = async (barcode) => {
+    await handleScanBarcode(barcode, true);
   };
 
   /**
@@ -312,6 +329,7 @@ export default function App() {
       <ScanFeedbackOverlay
         scanEvent={scanFeedbackEvent}
         onUndo={handleUndoScan}
+        onConfirmUnknown={handleConfirmUnknownBarcode}
         onClose={() => setScanFeedbackEvent(null)}
       />
 

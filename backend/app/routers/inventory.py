@@ -34,6 +34,7 @@ def ingest_barcode_scan(payload: BarcodeScanRequest, db: Session = Depends(get_d
         db=db,
         barcode=payload.barcode,
         device_info=payload.device_info or "Raspberry Pi Camera v3",
+        allow_fallback_creation=payload.confirm_unknown,
     )
 
 

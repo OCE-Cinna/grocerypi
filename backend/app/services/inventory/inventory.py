@@ -62,17 +62,40 @@ class InventoryService:
         db: Session,
         barcode: str,
         device_info: str = "Raspberry Pi Camera v3",
-        allow_fallback_creation: bool = True,
+        allow_fallback_creation: bool = False,
     ) -> BarcodeScanResponse:
         """
         Processes a scanned barcode in 4 simple steps:
-        1. Checks if the barcode is already saved in our local Product Catalog.
-        2. If not, looks up the barcode online using Albert Heijn and Open Food Facts.
-        3. If the product is still unknown, creates a basic placeholder item so the scan is not lost.
+        1. Checks that the barcode is a valid retail number (8, 12, 13, or 14 digits)
+           and checks if it is already saved in our local Product Catalog.
+        2. If not in the local catalog, looks up the barcode online using Albert Heijn
+           and Open Food Facts (Dutch/English only).
+        3. If the product is still unknown, asks the user to confirm or redo the scan
+           (unless allow_fallback_creation=True, which creates a custom item).
         4. Adds +1 to the item's quantity in the kitchen inventory and saves a scan log.
         """
         clean_code = barcode.strip()
         now_utc = datetime.now(timezone.utc)
+
+        # Reject non-numeric or wrong-length reads caused by motion blur before querying
+        if not clean_code.isdigit() or len(clean_code) not in (8, 12, 13, 14):
+            self.inventory_repo.log_scan(
+                db=db,
+                raw_barcode=clean_code,
+                product_id=None,
+                status=ScanStatus.UNKNOWN_BARCODE,
+                device_info=device_info,
+                scanned_at=now_utc,
+            )
+            db.commit()
+            return BarcodeScanResponse(
+                scan_status=ScanStatus.UNKNOWN_BARCODE,
+                message=f"Invalid barcode format ('{clean_code}'). Please hold the item steady and redo the scan.",
+                scanned_at=now_utc,
+                barcode=clean_code,
+                product=None,
+                inventory_item=None,
+            )
 
         # Step 1: Check the local product catalog first
         product = self.product_repo.get_by_barcode(db, clean_code)
@@ -99,14 +122,17 @@ class InventoryService:
                 db.commit()
                 return BarcodeScanResponse(
                     scan_status=ScanStatus.UNKNOWN_BARCODE,
-                    message=f"Barcode '{clean_code}' not found in product catalog.",
+                    message=(
+                        f"Barcode '{clean_code}' was not found in Albert Heijn or Open Food Facts. "
+                        "Please redo the scan for a clearer read, or confirm to add it as a custom item."
+                    ),
                     scanned_at=now_utc,
                     barcode=clean_code,
                     product=None,
                     inventory_item=None,
                 )
 
-            logger.info(f"Creating fallback catalog entry for barcode '{clean_code}'")
+            logger.info(f"User confirmed creating fallback catalog entry for barcode '{clean_code}'")
             product = self.product_repo.create_fallback(db, clean_code)
 
         # Step 4: Increase kitchen stock by +1 and save the scan in history
@@ -148,7 +174,7 @@ class InventoryService:
                 db=db,
                 barcode=barcode,
                 device_info="Raspberry Pi Camera Module v3 (Optical Loop)",
-                allow_fallback_creation=True,
+                allow_fallback_creation=False,
             )
             now_utc = res.scanned_at
             product = res.product

@@ -11,6 +11,7 @@ from app.services.scanner.scanner import (
     MockBarcodeScanner,
     Picamera2BarcodeScanner,
     get_barcode_scanner,
+    is_valid_retail_barcode,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "Picamera2BarcodeScanner",
     "MockBarcodeScanner",
     "get_barcode_scanner",
+    "is_valid_retail_barcode",
 ]

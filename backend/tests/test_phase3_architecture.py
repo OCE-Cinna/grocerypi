@@ -327,3 +327,66 @@ def test_products_scanner_and_auth_endpoints():
     assert cam_scanner._should_trigger_decode(now=100.083) is False
     # Frame after 0.75s has passed (t=100.80s) should trigger the next decode
     assert cam_scanner._should_trigger_decode(now=100.80) is True
+
+
+def test_barcode_checksum_validation_and_dutch_english_off_selection():
+    """
+    Checks that:
+    1. Valid retail EAN-13 barcodes pass GS1 Modulo-10 check-digit validation,
+       while motion-blurred wrong-check-digit or short numbers are rejected.
+    2. Unrecognized barcodes are blocked from entering the database unless the
+       user explicitly confirms adding them (confirm_unknown=True).
+    3. Open Food Facts lookup strictly selects Dutch (NL) or English (EN) names
+       and ignores German or Spanish titles.
+    """
+    from app.services.ah_client import select_dutch_or_english_name
+    from app.services.scanner import is_valid_retail_barcode
+
+    # 1. GS1 Modulo-10 Check-Digit Validation
+    assert is_valid_retail_barcode("8710400035541") is True
+    assert is_valid_retail_barcode("8710400035542") is False  # 1 digit off from motion blur
+    assert is_valid_retail_barcode("1428") is False  # Short non-retail number
+    assert is_valid_retail_barcode("ABC1234567890") is False
+
+    # 2. Unrecognized barcode requires confirmation before entering database
+    unconfirmed_res = client.post(
+        "/inventory/scan",
+        json={"barcode": "8719991112223", "confirm_unknown": False},
+    )
+    assert unconfirmed_res.status_code == 200
+    assert unconfirmed_res.json()["scan_status"] == "UNKNOWN_BARCODE"
+    assert unconfirmed_res.json()["product"] is None
+
+    confirmed_res = client.post(
+        "/inventory/scan",
+        json={"barcode": "8719991112223", "confirm_unknown": True},
+    )
+    assert confirmed_res.status_code == 200
+    assert confirmed_res.json()["scan_status"] == "SUCCESS"
+    assert confirmed_res.json()["product"]["barcode"] == "8719991112223"
+
+    # 3. Open Food Facts Dutch / English language filtering
+    off_german_default = {
+        "lang": "de",
+        "product_name": "Erdnussbutter Cremig",
+        "product_name_de": "Erdnussbutter Cremig",
+        "product_name_nl": "Pindakaas Romig",
+        "product_name_en": "Creamy Peanut Butter",
+    }
+    assert select_dutch_or_english_name(off_german_default) == "Pindakaas Romig"
+
+    off_spanish_with_english = {
+        "lang": "es",
+        "product_name": "Barrita de cereales con miel",
+        "product_name_es": "Barrita de cereales con miel",
+        "product_name_en": "Honey Cereal Bar",
+    }
+    assert select_dutch_or_english_name(off_spanish_with_english) == "Honey Cereal Bar"
+
+    off_foreign_only = {
+        "lang": "es",
+        "product_name": "Galletas de avena",
+        "product_name_es": "Galletas de avena",
+    }
+    assert select_dutch_or_english_name(off_foreign_only) is None
+

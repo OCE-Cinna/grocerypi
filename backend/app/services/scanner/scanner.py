@@ -27,11 +27,43 @@ except ImportError:
 
 try:
     from pyzbar import pyzbar
+    from pyzbar.pyzbar import ZBarSymbol
     _HAS_PYZBAR = True
+    _RETAIL_SYMBOLS = [
+        ZBarSymbol.EAN13,
+        ZBarSymbol.EAN8,
+        ZBarSymbol.UPCA,
+        ZBarSymbol.UPCE,
+    ]
 except ImportError:
     _HAS_PYZBAR = False
+    _RETAIL_SYMBOLS = None
 
 logger = logging.getLogger("grocerypi.scanner")
+
+
+def is_valid_retail_barcode(barcode: str, verify_checksum: bool = True) -> bool:
+    """
+    Checks that a barcode string is a valid retail grocery barcode (8, 12, 13, or 14 digits)
+    and passes the standard GS1 Modulo-10 check-digit math.
+    This blocks motion-blurred misreads and random numbers from entering the database.
+    """
+    if not barcode:
+        return False
+    clean = barcode.strip()
+    if not clean.isdigit() or len(clean) not in (8, 12, 13, 14):
+        return False
+    if not verify_checksum:
+        return True
+
+    digits = [int(d) for d in clean]
+    # Multiply digits from right to left (excluding the last check digit) by 3, 1, 3, 1...
+    total = sum(
+        d * (3 if idx % 2 == 0 else 1)
+        for idx, d in enumerate(reversed(digits[:-1]))
+    )
+    expected_check_digit = (10 - (total % 10)) % 10
+    return digits[-1] == expected_check_digit
 
 
 class IBarcodeScanner(ABC):
@@ -103,6 +135,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         )
         self.vflip = vflip if vflip is not None else os.getenv("CAMERA_VFLIP", "true").lower() in ("true", "1", "yes")
         self.hflip = hflip if hflip is not None else os.getenv("CAMERA_HFLIP", "false").lower() in ("true", "1", "yes")
+        self.min_sharpness = float(os.getenv("CAMERA_MIN_SHARPNESS", "20.0"))
         self._is_running = False
         self._thread: Optional[threading.Thread] = None
         self._on_scan_callback: Optional[Callable[[str], None]] = None
@@ -139,11 +172,13 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
 
     def decode_frame(self, frame: Any) -> Optional[str]:
         """
-        Looks for a barcode inside a camera picture:
-        1. Converts the image to black-and-white for clearer contrast.
-        2. Tries reading the barcode with pyzbar (best for grocery packaging).
-        3. If not found, tries reading with OpenCV's barcode detector.
-        4. If kitchen light glare gets in the way, applies a slight blur and tries once more.
+        Looks for a valid retail barcode inside a camera picture:
+        1. Converts the image to black-and-white and checks that the image is not
+           heavily motion-blurred (using a Laplacian sharpness check).
+        2. Restricts pyzbar strictly to retail grocery barcode formats (EAN-13, EAN-8,
+           UPC-A, UPC-E) so packaging lines are never misread as short numbers.
+        3. Verifies the GS1 Modulo-10 check digit on every detected code so single-digit
+           motion-blur errors are rejected immediately.
         """
         if not _HAS_CV2 or frame is None or frame.size == 0:
             return None
@@ -153,13 +188,23 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         else:
             gray = frame
 
+        # Skip frames that are too blurry from hand movement
+        try:
+            sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+            if sharpness < self.min_sharpness:
+                logger.debug(f"Skipping blurry camera frame (sharpness={sharpness:.1f} < {self.min_sharpness})")
+                return None
+        except Exception:
+            pass
+
         if _HAS_PYZBAR:
             try:
-                results = pyzbar.decode(gray)
+                results = pyzbar.decode(gray, symbols=_RETAIL_SYMBOLS)
                 for item in results:
                     code = item.data.decode("utf-8", errors="ignore").strip()
-                    if code:
+                    if is_valid_retail_barcode(code, verify_checksum=True):
                         return code
+                    logger.debug(f"Rejected invalid/blurred pyzbar barcode read: '{code}'")
             except Exception as e:
                 logger.debug(f"pyzbar decode pass error: {e}")
 
@@ -169,18 +214,19 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                 if retval and decoded_info:
                     for item in decoded_info:
                         clean_code = str(item).strip()
-                        if clean_code:
+                        if is_valid_retail_barcode(clean_code, verify_checksum=True):
                             return clean_code
+                        logger.debug(f"Rejected invalid/blurred OpenCV barcode read: '{clean_code}'")
             except Exception:
                 pass
 
         if _HAS_PYZBAR:
             try:
                 blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-                results = pyzbar.decode(blurred)
+                results = pyzbar.decode(blurred, symbols=_RETAIL_SYMBOLS)
                 for item in results:
                     code = item.data.decode("utf-8", errors="ignore").strip()
-                    if code:
+                    if is_valid_retail_barcode(code, verify_checksum=True):
                         return code
             except Exception:
                 pass
@@ -245,10 +291,21 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             self._picam2.start()
 
             try:
-                self._picam2.set_controls({"AfMode": 2})
-                logger.info("Camera Module v3 Continuous Autofocus (PDAF) engaged.")
+                # AfMode 2 = Continuous Autofocus; AeExposureMode 1 = Short exposure (reduces motion blur);
+                # Sharpness 1.5 & Contrast 1.15 = crisper barcode bars under indoor kitchen light.
+                self._picam2.set_controls({
+                    "AfMode": 2,
+                    "AeExposureMode": 1,
+                    "Sharpness": 1.5,
+                    "Contrast": 1.15,
+                })
+                logger.info("Camera Module v3 Continuous Autofocus (PDAF) and anti-motion-blur controls engaged.")
             except Exception as af_err:
                 logger.warning(f"Continuous autofocus configuration notice: {af_err}")
+                try:
+                    self._picam2.set_controls({"AfMode": 2})
+                except Exception:
+                    pass
 
             logger.info(
                 f"Picamera2 capture loop started at {self.fps} FPS "

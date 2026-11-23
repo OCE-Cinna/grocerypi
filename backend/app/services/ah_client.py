@@ -48,6 +48,54 @@ def clean_product_name_and_brand(raw_name: str, raw_brand: Optional[str]) -> Tup
     return clean_name or raw_name.strip(), brand
 
 
+def select_dutch_or_english_name(prod: Dict[str, Any]) -> Optional[str]:
+    """
+    Picks only a Dutch (NL) or English (EN) product title from an Open Food Facts
+    record so products from international brands (like Calvé or cereal bars) never
+    show up in German, Spanish, or French.
+    """
+    # 1. Explicit Dutch or English fields in priority order
+    for key in ("product_name_nl", "product_name_en", "generic_name_nl", "generic_name_en"):
+        val = (prod.get(key) or "").strip()
+        if val:
+            return val
+
+    # 2. Only accept generic product_name if the item's main language is Dutch or English
+    main_lang = str(prod.get("lang") or prod.get("lc") or "").strip().lower()
+    if main_lang in ("nl", "en"):
+        for key in ("product_name", "generic_name"):
+            val = (prod.get(key) or "").strip()
+            if val:
+                return val
+
+    # 3. Check if generic product_name is different from foreign-language fields (DE, ES, FR, IT)
+    generic_title = (prod.get("product_name") or "").strip()
+    if generic_title:
+        foreign_titles = {
+            (prod.get(k) or "").strip().lower()
+            for k in ("product_name_de", "product_name_es", "product_name_fr", "product_name_it")
+            if prod.get(k)
+        }
+        if not foreign_titles or generic_title.lower() not in foreign_titles:
+            return generic_title
+
+    return None
+
+
+def infer_preferred_store_from_off(prod: Dict[str, Any], brand: Optional[str]) -> PreferredStore:
+    """Checks Open Food Facts store and brand tags to assign Jumbo, Lidl, or AH."""
+    stores_raw = " ".join(
+        [str(prod.get("stores") or "")]
+        + [str(s) for s in (prod.get("stores_tags") or [])]
+        + [str(brand or "")]
+    ).lower()
+    if "jumbo" in stores_raw:
+        return PreferredStore.JUMBO
+    if "lidl" in stores_raw:
+        return PreferredStore.LIDL
+    return PreferredStore.AH
+
+
 def map_category(main_cat: str, sub_cat: str, title: str) -> ItemCategory:
     """Classifies products into the standard GroceryPi ItemCategory enum."""
     combined = f"{main_cat} {sub_cat} {title}".lower()
@@ -412,22 +460,34 @@ class AHClient(IStoreGateway):
     def get_product_from_openfoodfacts(self, barcode: str) -> Optional[Dict[str, Any]]:
         """
         Looks up a barcode in the free Open Food Facts database when a product
-        is not sold at Albert Heijn (for example, items from Jumbo or Lidl).
+        is not sold at Albert Heijn (for example, items from Jumbo, Lidl, or
+        international brands). Explicitly requests Dutch (nl) and English (en)
+        product information so German or Spanish names are ignored.
         """
         clean_barcode = barcode.strip()
-        url = f"https://world.openfoodfacts.org/api/v2/product/{clean_barcode}.json"
+        url = f"https://nl.openfoodfacts.org/api/v2/product/{clean_barcode}.json?lc=nl"
         try:
             req = urllib.request.Request(
                 url,
-                headers={"User-Agent": "GroceryPi/2.0 (Raspberry Pi Touchscreen Kiosk)"}
+                headers={
+                    "User-Agent": "GroceryPi/2.0 (Raspberry Pi Touchscreen Kiosk)",
+                    "Accept-Language": "nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7",
+                },
             )
             with urllib.request.urlopen(req, timeout=6) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 if data.get("status") == 1 and "product" in data:
                     prod = data["product"]
-                    raw_title = prod.get("product_name") or prod.get("generic_name") or f"Item {clean_barcode}"
                     raw_brand = prod.get("brands")
-                    clean_name, clean_brand = clean_product_name_and_brand(raw_title, raw_brand)
+                    selected_title = select_dutch_or_english_name(prod)
+                    if not selected_title:
+                        # If only German/Spanish/French names exist, use brand + English category or skip
+                        if raw_brand:
+                            selected_title = f"{raw_brand.split(',')[0].strip()} Product"
+                        else:
+                            return None
+
+                    clean_name, clean_brand = clean_product_name_and_brand(selected_title, raw_brand)
 
                     nutriscore = (prod.get("nutriscore_grade") or "").upper() or None
                     if nutriscore and nutriscore not in ["A", "B", "C", "D", "E"]:
@@ -450,11 +510,17 @@ class AHClient(IStoreGateway):
                         "salt_grams": float(nutriments.get("salt_100g") or 0.0),
                     }
 
+                    en_or_nl_cats = " ".join(
+                        str(c) for c in (prod.get("categories_tags") or [])
+                        if str(c).startswith(("en:", "nl:"))
+                    )
+
                     return {
                         "barcode": clean_barcode,
                         "name": clean_name,
                         "brand": clean_brand,
-                        "category": map_category("", "", clean_name),
+                        "category": map_category(en_or_nl_cats, "", clean_name),
+                        "preferred_store": infer_preferred_store_from_off(prod, clean_brand),
                         "webshop_id": None,
                         "package_size": prod.get("quantity"),
                         "nutriscore": nutriscore,
@@ -508,7 +574,7 @@ def resolve_barcode_to_catalog_item(barcode: str, db: Session) -> ProductCatalog
         name=prod_data["name"],
         brand=prod_data.get("brand"),
         category=prod_data.get("category", ItemCategory.FOOD),
-        preferred_store=PreferredStore.AH,
+        preferred_store=prod_data.get("preferred_store", PreferredStore.AH),
         is_dual_store=False,
         webshop_id=prod_data.get("webshop_id"),
         package_size=prod_data.get("package_size"),
