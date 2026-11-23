@@ -40,6 +40,7 @@ export default function DashboardPage({
   const [sortByOption, setSortByOption] = useState("newest");
   const [showDepleted, setShowDepleted] = useState(false);
   const [dismissedCycleBanner, setDismissedCycleBanner] = useState(false);
+  const safeItems = Array.isArray(items) ? items : [];
 
   /**
    * Counts how many items have reached 100% of their restock cycle (Depleted / In Cart)
@@ -50,7 +51,7 @@ export default function DashboardPage({
     let low = 0;
     const nowMs = Date.now();
 
-    for (const item of items) {
+    for (const item of safeItems) {
       const isDep = item.status === "DEPLETED" || (item.quantity ?? 1) <= 0;
       if (isDep) {
         depleted += 1;
@@ -67,7 +68,7 @@ export default function DashboardPage({
       }
     }
     return { depletedCount: depleted, runningLowCount: low };
-  }, [items]);
+  }, [safeItems]);
 
   /**
    * Filters the displayed items based on active stock status (hiding depleted/synced
@@ -75,7 +76,7 @@ export default function DashboardPage({
    * diet button, and chosen sort order.
    */
   const filteredItems = useMemo(() => {
-    let result = items.filter((item) => {
+    let result = safeItems.filter((item) => {
       const isDepleted =
         item.status === "DEPLETED" || (item.quantity ?? 1) <= 0;
       if (!showDepleted && isDepleted) {

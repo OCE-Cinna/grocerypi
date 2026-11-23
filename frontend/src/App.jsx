@@ -71,7 +71,9 @@ export default function App() {
         url += `?sort_by=${sortNutrient.key}&order=desc`;
       }
       const res = await api.get(url);
-      setItems(res.data);
+      if (Array.isArray(res.data)) {
+        setItems(res.data);
+      }
     } catch (err) {
       console.error("Failed to fetch inventory:", err);
     }
@@ -89,13 +91,27 @@ export default function App() {
         api.get("/scanner/status"),
         api.get("/cart/stores/status"),
       ]);
-      if (prodRes.status === "fulfilled") setSampleProducts(prodRes.value.data);
-      if (nutRes.status === "fulfilled") setNutritionSummary(nutRes.value.data);
-      if (storeRes.status === "fulfilled" && storeRes.value.data) {
+      if (prodRes.status === "fulfilled" && Array.isArray(prodRes.value.data)) {
+        setSampleProducts(prodRes.value.data);
+      }
+      if (
+        nutRes.status === "fulfilled" &&
+        nutRes.value.data &&
+        typeof nutRes.value.data === "object"
+      ) {
+        setNutritionSummary(nutRes.value.data);
+      }
+      if (
+        storeRes.status === "fulfilled" &&
+        storeRes.value.data &&
+        typeof storeRes.value.data === "object"
+      ) {
         setStoresInfo({
           connected: Boolean(storeRes.value.data.connected),
           label: storeRes.value.data.label || "Not connected",
-          connectedStores: storeRes.value.data.connected_stores || [],
+          connectedStores: Array.isArray(storeRes.value.data.connected_stores)
+            ? storeRes.value.data.connected_stores
+            : [],
         });
       }
       if (scanRes.status === "fulfilled") {

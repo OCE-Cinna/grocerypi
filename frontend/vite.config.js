@@ -11,6 +11,7 @@ export default defineConfig({
       "/lists": "http://localhost:8000",
       "/inventory": "http://localhost:8000",
       "/products": "http://localhost:8000",
+      "/cart": "http://localhost:8000",
       "/scanner": "http://localhost:8000",
       "/system": "http://localhost:8000",
     },
