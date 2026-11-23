@@ -307,8 +307,23 @@ def test_products_scanner_and_auth_endpoints():
     assert patch_prod.json()["package_size"] == "12 pack"
     assert patch_prod.json()["preferred_store"] == "Jumbo"
 
-    # 4. Check /scanner status and start/stop routes
+    # 4. Check /scanner status and camera FPS vs decode throttle interval
     assert issubclass(AHClient, IStoreGateway)
     scan_status = client.get("/scanner/status")
     assert scan_status.status_code == 200
-    assert "sensor" in scan_status.json()
+    status_data = scan_status.json()
+    assert "sensor" in status_data
+    assert status_data["preview_fps"] == 12
+    assert 0.5 <= status_data["scan_interval_seconds"] <= 1.0
+
+    # 5. Directly test Picamera2BarcodeScanner decode throttling (12 FPS preview, 0.75s decode)
+    from app.services.scanner.scanner import Picamera2BarcodeScanner
+    cam_scanner = Picamera2BarcodeScanner(fps=12, scan_interval_seconds=0.75)
+    assert cam_scanner.fps == 12
+    assert cam_scanner.scan_interval_seconds == 0.75
+    # First check at t=100.0s should trigger a decode
+    assert cam_scanner._should_trigger_decode(now=100.0) is True
+    # Next frame 83ms later (12 FPS -> t=100.083s) should skip decode so preview stays fast
+    assert cam_scanner._should_trigger_decode(now=100.083) is False
+    # Frame after 0.75s has passed (t=100.80s) should trigger the next decode
+    assert cam_scanner._should_trigger_decode(now=100.80) is True

@@ -80,17 +80,27 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         resolution: Tuple[int, int] = (1280, 720),
         debounce_seconds: float = 2.5,
         fps: Optional[int] = None,
+        scan_interval_seconds: Optional[float] = None,
         vflip: Optional[bool] = None,
         hflip: Optional[bool] = None,
     ):
         """
-        Sets up camera settings such as image size, pause time between identical
-        scans (debounce_seconds), frames per second (defaults to 1 FPS to keep
-        the Raspberry Pi cool), and flipping the image if the camera mount is upside down.
+        Sets up camera settings:
+        - resolution: Size of captured camera frames.
+        - debounce_seconds: Cooldown before the same barcode can be added again (2.5s).
+        - fps: Smooth camera frame rate for the live viewfinder preview (defaults to 12 FPS).
+        - scan_interval_seconds: How often the heavy barcode decoding runs (defaults to 0.75s,
+          between 0.5 and 1.0 seconds) so barcode scanning never slows down the Raspberry Pi.
+        - vflip / hflip: Flips the camera image if the physical mount is upside down.
         """
         self.resolution = resolution
         self.debounce_seconds = debounce_seconds
-        self.fps = fps if fps is not None else int(os.getenv("CAMERA_FPS", "1"))
+        self.fps = fps if fps is not None else int(os.getenv("CAMERA_FPS", "12"))
+        self.scan_interval_seconds = (
+            scan_interval_seconds
+            if scan_interval_seconds is not None
+            else float(os.getenv("SCAN_INTERVAL_SECONDS", "0.75"))
+        )
         self.vflip = vflip if vflip is not None else os.getenv("CAMERA_VFLIP", "true").lower() in ("true", "1", "yes")
         self.hflip = hflip if hflip is not None else os.getenv("CAMERA_HFLIP", "false").lower() in ("true", "1", "yes")
         self._is_running = False
@@ -102,6 +112,7 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         self._lock = threading.Lock()
         self._latest_jpeg: Optional[bytes] = None
         self._is_decoding: bool = False
+        self._last_decode_time: float = 0.0
 
     @property
     def is_running(self) -> bool:
@@ -195,6 +206,20 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
         self._recent_scans[barcode] = now
         return False
 
+    def _should_trigger_decode(self, now: Optional[float] = None) -> bool:
+        """
+        Checks if enough time (scan_interval_seconds, e.g. 0.5 to 1.0 seconds)
+        has passed since the last barcode decode check and no decode is currently running.
+        This keeps the camera preview smooth at 12 FPS while avoiding heavy CPU load.
+        """
+        if self._is_decoding:
+            return False
+        current_time = now if now is not None else time.time()
+        if current_time - self._last_decode_time < self.scan_interval_seconds:
+            return False
+        self._last_decode_time = current_time
+        return True
+
     def _capture_loop(self) -> None:
         """
         Runs continuously in the background while the camera is turned on.
@@ -225,7 +250,10 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
             except Exception as af_err:
                 logger.warning(f"Continuous autofocus configuration notice: {af_err}")
 
-            logger.info(f"Picamera2 capture loop started successfully at {self.fps} FPS.")
+            logger.info(
+                f"Picamera2 capture loop started at {self.fps} FPS "
+                f"(barcode decode interval: {self.scan_interval_seconds}s)."
+            )
             interval = 1.0 / max(1, self.fps)
 
             while self._is_running:
@@ -252,7 +280,8 @@ class Picamera2BarcodeScanner(IBarcodeScanner):
                     except Exception:
                         pass
 
-                if not self._is_decoding:
+                # Only run heavy barcode decoding every scan_interval_seconds (0.5s - 1.0s)
+                if self._should_trigger_decode(start_time):
                     self._is_decoding = True
                     threading.Thread(
                         target=self._async_decode,

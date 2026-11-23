@@ -18,9 +18,14 @@ router = APIRouter(prefix="/scanner", tags=["Hardware Scanner"])
 
 @router.get("/status")
 def get_scanner_status():
-    """Tells the frontend whether the physical camera scanner is currently running."""
+    """Tells the frontend whether the physical camera scanner is currently running and its frame/decode rates."""
     scanner = get_barcode_scanner()
-    return {"running": scanner.is_running, "sensor": "Raspberry Pi Camera Module v3 (PDAF autofocus)"}
+    return {
+        "running": scanner.is_running,
+        "sensor": "Raspberry Pi Camera Module v3 (PDAF autofocus)",
+        "preview_fps": getattr(scanner, "fps", 12),
+        "scan_interval_seconds": getattr(scanner, "scan_interval_seconds", 0.75),
+    }
 
 
 @router.get("/preview")
@@ -41,7 +46,7 @@ async def get_scanner_preview(request: Request):
                     b"--frame\r\n"
                     b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
                 )
-            stream_interval = 1.0 / max(1, getattr(scanner, "fps", 1))
+            stream_interval = 1.0 / max(1, getattr(scanner, "fps", 12))
             await asyncio.sleep(stream_interval)
 
     return StreamingResponse(

@@ -16,11 +16,17 @@ export DISPLAY="${DISPLAY:-:0}"
 export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 export ENABLE_HARDWARE_SCANNER=true
 export CAMERA_VFLIP=true
+export CAMERA_FPS="${CAMERA_FPS:-12}"
+export SCAN_INTERVAL_SECONDS="${SCAN_INTERVAL_SECONDS:-0.75}"
 
 echo "=========================================="
 echo " Starting GroceryPi Kiosk Environment..."
 echo " Root: $SCRIPT_DIR"
 echo "=========================================="
+
+# 0. Auto-pull latest changes from GitHub if network is reachable
+echo "[Git] Checking for updates from GitHub..."
+git fetch origin --prune 2>/dev/null && git pull --ff-only 2>/dev/null || echo "[Git] Offline or local changes present; continuing with current local version."
 
 # 1. Start FastAPI Backend if not running on port 8000
 if curl -s http://localhost:8000/ > /dev/null 2>&1; then
